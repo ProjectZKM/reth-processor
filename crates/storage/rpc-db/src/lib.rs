@@ -1,28 +1,29 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    marker::PhantomData,
-    sync::{Arc, RwLock},
-};
-
-use alloy_primitives::{map::HashMap, U256};
+use alloy_primitives::{map::HashMap, private::serde::Deserialize, Bytes, U256};
 use alloy_provider::{
     network::{primitives::HeaderResponse, BlockResponse},
     Network, Provider,
 };
-use alloy_rpc_types::BlockId;
+use alloy_rpc_types::{Block, BlockId};
+use indexmap::IndexMap;
 use reth_storage_errors::{db::DatabaseError, provider::ProviderError};
 use revm_database_interface::DatabaseRef;
 use revm_primitives::{Address, B256};
 use revm_state::{AccountInfo, Bytecode};
-use tracing::debug;
+use std::{borrow::Cow, collections::{BTreeMap, BTreeSet}, fs, marker::PhantomData, sync::{Arc, RwLock}};
+use std::path::Path;
+use std::thread::sleep;
+use std::time::Duration;
+use tracing::{debug, info};
 
 /// A database that fetches data from a [Provider] over a [Transport].
 #[derive(Debug, Clone)]
 pub struct RpcDb<P, N> {
     /// The provider which fetches data.
     pub provider: P,
+    /// The provider which fetches debug info.
+    pub debug_provider: P,
     /// The block to fetch data from.
     pub block: BlockId,
     /// The cached accounts.
@@ -33,6 +34,37 @@ pub struct RpcDb<P, N> {
     pub oldest_ancestor: Arc<RwLock<u64>>,
 
     phantom: std::marker::PhantomData<N>,
+}
+
+/// Top-level RPC response from debug_traceBlockByNumber with prestate enabled
+#[derive(Debug, Clone, Deserialize)]
+pub struct PrestateTraceRpcResponse(pub Vec<PrestateTxTrace>);
+
+/// A single transaction's trace prestate result
+#[derive(Debug, Clone, Deserialize)]
+pub struct PrestateTxTrace {
+    /// Transaction hash
+    #[serde(rename = "txHash")]
+    pub tx_hash: B256,
+
+    /// Mapping of address -> account info (preserves insertion order)
+    pub result: IndexMap<Address, PrestateAccount>,
+}
+
+/// An account's state at the start of the transaction execution
+#[derive(Debug, Clone, Deserialize)]
+pub struct PrestateAccount {
+    /// Account balance
+    pub balance: Option<U256>,
+
+    /// Account nonce
+    pub nonce: Option<u64>,
+
+    /// Account code, if present
+    pub code: Option<Bytes>,
+
+    /// Optional storage slot mapping
+    pub storage: Option<IndexMap<U256, U256>>,
 }
 
 /// Errors that can occur when interacting with the [RpcDb].
@@ -56,9 +88,10 @@ pub enum RpcDbError {
 
 impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
     /// Create a new [`RpcDb`].
-    pub fn new(provider: P, block: u64) -> Self {
+    pub fn new(provider: P, debug_provider: P, block: u64) -> Self {
         RpcDb {
             provider,
+            debug_provider,
             block: block.into(),
             accounts: Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
             storage: Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
@@ -70,6 +103,12 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
     /// Fetch the [AccountInfo] for an [Address].
     pub async fn fetch_account_info(&self, address: Address) -> Result<AccountInfo, RpcDbError> {
         debug!("fetching account info for address: {}", address);
+        if let Some(account_info) =
+            self.accounts.read().map_err(|_| RpcDbError::Poisoned)?.get(&address).cloned()
+        {
+            debug!("fetching account info from cache for address: {}", address);
+            return Ok(account_info);
+        }
 
         // Fetch the proof for the account.
         let proof = self
@@ -95,6 +134,10 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
             code_hash: proof.code_hash,
             code: Some(bytecode.clone()),
         };
+        debug!(
+            "[fetch_account_info]fetching basic account info for address: {}, balance: {:?}, nonce: {:?}, code_hash: {:?}",
+            address, account_info.balance, account_info.nonce, account_info.code_hash
+        );
 
         // Record the account info to the state.
         self.accounts
@@ -112,6 +155,16 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
         index: U256,
     ) -> Result<U256, RpcDbError> {
         debug!("fetching storage value at address: {}, index: {}", address, index);
+        if let Some(value) = self
+            .storage
+            .read()
+            .map_err(|_| RpcDbError::Poisoned)?
+            .get(&address)
+            .and_then(|inner| inner.get(&index).copied())
+        {
+            debug!("fetching account info from cache for address {}, index {:x}, value {}", address, index, value);
+            return Ok(value);
+        }
 
         // Fetch the storage value.
         let value = self
@@ -120,6 +173,7 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
             .block_id(self.block)
             .await
             .map_err(|e| RpcDbError::GetStorageError(address, index, e.to_string()))?;
+        debug!("[fetch_storage_at] fetching storage value at address: {}, index: {}, value {}", address, index, value);
 
         // Record the storage value to the state.
         let mut storage_values = self.storage.write().map_err(|_| RpcDbError::Poisoned)?;
@@ -148,6 +202,71 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
         *oldest_ancestor = number.min(*oldest_ancestor);
 
         Ok(hash)
+    }
+
+    /// Preloads accounts and storage for the current block.
+    ///  We use debug_provider.
+    pub async fn preload_accounts_and_storage(&self) -> Result<(), RpcDbError> {
+        info!(
+            "Preloading accounts and storage for block: {}",
+            self.block
+        );
+        let current_block = self.block.as_u64().unwrap() + 1;
+        let params = (
+            format!("0x{:x}", current_block),
+            serde_json::json!({
+                "disableStorage": false,
+                "disableMemory": true,
+                "disableStack": true,
+                "tracer": "prestateTracer"
+            }),
+        );
+
+        let now = std::time::Instant::now();
+        // TODO: use debug_traceTransaction in parallel instead of debug_traceBlockByNumber
+        let prestate: PrestateTraceRpcResponse = self
+            .debug_provider
+            .raw_request("debug_traceBlockByNumber".into(), params)
+            .await
+            .map_err(|e| {
+                RpcDbError::GetBlockError(current_block, e.to_string())
+            })?;
+        info!("rpc request took: {:?}, got {} txs", now.elapsed(),prestate.0.len());
+
+        for tx_trace in prestate.0 {
+            for (address, account) in tx_trace.result {
+                if !self.accounts.read().map_err(|_| RpcDbError::Poisoned)?.contains_key(&address) {
+                    let bytecode = account.code.clone().map(Bytecode::new_raw);
+                    /// Some RPC will return incorrect code and nonce for accounts with EIP-7702,
+                    /// we will ignore these accounts.
+                    /// This is a temporary fix
+                    if bytecode.as_ref().is_some_and(|bc| bc.is_eip7702()) {
+                        continue;
+                    }
+
+                    let account_info = AccountInfo::from_bytecode(bytecode.unwrap_or_default())
+                        .with_balance(account.balance.unwrap_or_default())
+                        .with_nonce(account.nonce.unwrap_or_default());
+
+                    self.accounts
+                        .write()
+                        .map_err(|_| RpcDbError::Poisoned)?
+                        .entry(address)
+                        .or_insert(account_info);
+                }
+
+                if let Some(storage_map) = account.storage {
+                    let mut storage_lock =
+                        self.storage.write().map_err(|_| RpcDbError::Poisoned)?;
+                    let account_storage = storage_lock.entry(address).or_insert_with(|| HashMap::with_hasher(Default::default()));
+
+                    for (slot, value) in storage_map {
+                        account_storage.entry(slot).or_insert(value);
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Gets all the state keys used. The client uses this to read the actual state data from tries.

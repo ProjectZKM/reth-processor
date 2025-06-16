@@ -21,3 +21,7 @@ revm-state.workspace = true
 alloy-primitives.workspace = true
 alloy-provider.workspace = true
 alloy-rpc-types.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+indexmap = { version = "2.9.0", features = ["serde"] }

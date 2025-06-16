@@ -78,6 +78,12 @@ impl HostArgs {
                 eyre::bail!("either --rpc-url or --chain-id must be used")
             }
         };
+        let debug_rpc_url = self.provider.debug_rpc_url.clone().or_else(|| {
+            std::env::var(format!("DEBUG_RPC_{}", chain_id))
+                .ok()
+                .and_then(|url| Url::parse(&url).ok())
+        });
+        let debug_rpc_url = debug_rpc_url.or_else(|| rpc_url.clone());
 
         let genesis = if let Some(genesis_path) = &self.genesis_path {
             let genesis_json = fs::read_to_string(genesis_path)
@@ -94,6 +100,7 @@ impl HostArgs {
             chain,
             genesis,
             rpc_url,
+            debug_rpc_url,
             cache_dir: self.cache_dir.clone(),
             custom_beneficiary: self.custom_beneficiary,
             prove_mode: self.prove.then_some(ZKMProofKind::Compressed),
@@ -112,6 +119,10 @@ pub struct ProviderArgs {
     /// RPC_{chain_id} env var.
     #[clap(long)]
     pub rpc_url: Option<Url>,
+    /// The debug rpc url used to fetch data about the block trace. If not provided, will use the
+    /// DEBUG_RPC_{chain_id} env var. If DEBUG_RPC_{chain_id} is not set, will use the rpc_url.
+    #[clap(long)]
+    pub debug_rpc_url: Option<Url>,
     /// The chain ID. If not provided, requires the rpc_url argument to be provided.
     #[clap(long)]
     pub chain_id: Option<u64>,

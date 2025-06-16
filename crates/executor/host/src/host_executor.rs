@@ -4,7 +4,7 @@ use futures::future::try_join_all;
 use tokio::sync::Semaphore;
 
 use crate::{error::SpawnedTaskError, HostError};
-use alloy_consensus::{BlockHeader, Header, TxReceipt};
+use alloy_consensus::{BlockHeader, Header, Transaction, TxReceipt};
 use alloy_evm::EthEvmFactory;
 use alloy_primitives::{Bloom, Sealable};
 use alloy_provider::{Network, Provider};
@@ -22,9 +22,9 @@ use reth_evm::{
 use reth_evm_ethereum::EthEvmConfig;
 use reth_execution_types::ExecutionOutcome;
 use reth_optimism_evm::OpEvmConfig;
-use reth_primitives_traits::{Block, BlockBody};
+use reth_primitives_traits::{Block, BlockBody, SignedTransaction};
 use reth_trie::KeccakKeyHasher;
-use revm::database::CacheDB;
+use revm::{database::CacheDB, Database};
 use revm_primitives::{Address, B256};
 use rpc_db::RpcDb;
 
@@ -94,8 +94,18 @@ impl<C: ConfigureEvm> HostExecutor<C> {
 
         // Setup the database for the block executor.
         tracing::info!("setting up the database for the block executor");
+        let now = std::time::Instant::now();
+        rpc_db.preload_accounts_and_storage().await.map_err(|e| {
+            HostError::Custom(format!("Failed to preload accounts and storage: {e}"))
+        })?;
+        tracing::info!("preloaded accounts and storage took {:?}", now.elapsed());
         let cache_db = CacheDB::new(rpc_db);
 
+        let block = current_block
+            .clone()
+            .try_into_recovered()
+            .map_err(|_| HostError::FailedToRecoverSenders)
+            .unwrap();
         let block_executor = BasicBlockExecutor::new(self.evm_config.clone(), cache_db);
 
         // Execute the block and fetch all the necessary data along the way.
@@ -105,13 +115,9 @@ impl<C: ConfigureEvm> HostExecutor<C> {
             current_block.body().transactions().len()
         );
 
-        let block = current_block
-            .clone()
-            .try_into_recovered()
-            .map_err(|_| HostError::FailedToRecoverSenders)
-            .unwrap();
-        // TODO: the most time-consuming part
+        let now = std::time::Instant::now();
         let execution_output = block_executor.execute(&block)?;
+        tracing::info!("block execution took {:?}", now.elapsed());
 
         // Validate the block post execution.
         tracing::info!("validating the block post execution");

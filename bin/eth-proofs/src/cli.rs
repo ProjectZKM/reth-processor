@@ -16,6 +16,10 @@ pub struct Args {
     #[clap(long, env)]
     pub ws_rpc_url: Url,
 
+    /// The debug HTTP rpc url used to fetch data about the block trace.
+    #[clap(long, env)]
+    pub debug_http_rpc_url: Url,
+
     /// Whether to generate a proof or just execute the block.
     #[clap(long)]
     pub execute_only: bool,
@@ -51,6 +55,7 @@ impl Args {
             chain: Chain::mainnet(),
             genesis: Genesis::Mainnet,
             rpc_url: Some(self.http_rpc_url.clone()),
+            debug_rpc_url: Some(self.debug_http_rpc_url.clone()),
             cache_dir: None,
             custom_beneficiary: None,
             prove_mode: (!self.execute_only).then_some(ZKMProofKind::Compressed),

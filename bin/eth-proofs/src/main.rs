@@ -58,6 +58,7 @@ async fn main() -> eyre::Result<()> {
     let ws = WsConnect::new(args.ws_rpc_url);
     let ws_provider = ProviderBuilder::new().on_ws(ws).await?;
     let http_provider = create_provider(args.http_rpc_url);
+    let debug_http_provider = create_provider(args.debug_http_rpc_url);
 
     // Subscribe to block headers.
     let subscription = ws_provider.subscribe_blocks().await?;
@@ -84,13 +85,14 @@ async fn main() -> eyre::Result<()> {
 
     let executor = FullExecutor::<EthExecutorComponents<_, _>, _>::try_new(
         http_provider.clone(),
+        debug_http_provider.clone(),
         elf,
         block_execution_strategy_factory,
         client,
         eth_proofs_client,
         config,
     )
-    .await?;
+        .await?;
 
     info!("Latest block number: {}", http_provider.get_block_number().await?);
 

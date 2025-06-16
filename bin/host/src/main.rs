@@ -52,16 +52,18 @@ async fn main() -> eyre::Result<()> {
     let block_execution_strategy_factory =
         create_eth_block_execution_strategy_factory(&config.genesis, config.custom_beneficiary);
     let provider = config.rpc_url.as_ref().map(|url| create_provider(url.clone()));
+    let debug_provider = config.debug_rpc_url.as_ref().map(|url| create_provider(url.clone()));
 
     let executor = build_executor::<EthExecutorComponents<_>, _>(
         elf,
         provider,
+        debug_provider,
         block_execution_strategy_factory,
         prover_client,
         persist_execution_report,
         config,
     )
-    .await?;
+        .await?;
 
     executor.execute(block_number).await?;
 

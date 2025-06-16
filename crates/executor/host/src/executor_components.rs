@@ -28,12 +28,12 @@ pub trait ExecutorComponents {
     type Network: Network;
 
     type Primitives: NodePrimitives
-        + DeserializeOwned
-        + IntoPrimitives<Self::Network>
-        + IntoInput
-        + ValidateBlockPostExecution;
+    + DeserializeOwned
+    + IntoPrimitives<Self::Network>
+    + IntoInput
+    + ValidateBlockPostExecution;
 
-    type EvmConfig: ConfigureEvm<Primitives = Self::Primitives>;
+    type EvmConfig: ConfigureEvm<Primitives=Self::Primitives>;
 
     type Hooks: ExecutionHooks;
 }
