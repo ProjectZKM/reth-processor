@@ -112,9 +112,7 @@ pub trait BlockExecutor<C: ExecutorComponents> {
             let pk = self.pk();
 
             let proof = task::spawn_blocking(move || {
-                client
-                    .prove(pk.as_ref(), stdin, Default::default(), Default::default(), prove_mode)
-                    .map_err(|err| eyre::eyre!("{err}"))
+                client.prove(pk.as_ref(), stdin, prove_mode).map_err(|err| eyre::eyre!("{err}"))
             })
             .await
             .map_err(|err| eyre::eyre!("{err}"))??;
