@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use alloy_consensus::{BlockHeader, Header, TxReceipt};
 use alloy_evm::EthEvmFactory;
-use alloy_primitives::Bloom;
+use alloy_primitives::{B256, Bloom};
 use reth_chainspec::ChainSpec;
 use reth_errors::BlockExecutionError;
 use reth_evm::{
@@ -52,7 +52,7 @@ where
     pub fn execute(
         &self,
         mut input: ClientExecutorInput<C::Primitives>,
-    ) -> Result<Header, ClientError> {
+    ) -> Result<(Header, B256), ClientError> {
         // Initialize the witnessed database with verified storage proofs.
         let db = profile_report!(INIT_WITNESS_DB, {
             let trie_db = input.witness_db().unwrap();
@@ -130,7 +130,7 @@ where
             requests_hash: None,
         };
 
-        Ok(header)
+        Ok((header, input.parent_state.state_root()))
     }
 }
 
