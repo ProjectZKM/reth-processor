@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use alloy_consensus::{BlockHeader, Header, TxReceipt};
 use alloy_evm::EthEvmFactory;
-use alloy_primitives::{B256, Bloom};
+use alloy_primitives::{Bloom, B256};
 use reth_chainspec::ChainSpec;
 use reth_errors::BlockExecutionError;
 use reth_evm::{
@@ -94,6 +94,8 @@ where
             vec![execution_output.result.requests],
         );
 
+        let parent_state_root = input.parent_state.state_root();
+
         // Verify the state root.
         let state_root = profile_report!(COMPUTE_STATE_ROOT, {
             input.parent_state.update(&executor_outcome.hash_state_slow::<KeccakKeyHasher>());
@@ -130,7 +132,7 @@ where
             requests_hash: None,
         };
 
-        Ok((header, input.parent_state.state_root()))
+        Ok((header, parent_state_root))
     }
 }
 
