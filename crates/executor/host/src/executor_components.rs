@@ -102,6 +102,7 @@ impl MaybeProveWithCycles for ProverClient {
             ZKMProofKind::Compressed => prove.compressed(),
             ZKMProofKind::Groth16 => prove.groth16(),
             ZKMProofKind::Plonk => prove.plonk(),
+            _ => unreachable!("Unsupported proof mode: {:?}", mode),
         };
         let proof = prove.run().map_err(|err| eyre!("{err}"))?;
 
