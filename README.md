@@ -11,7 +11,7 @@ A minimal implementation of generating zero-knowledge proofs of EVM block execut
 Required
 
 - [Rust](https://www.rust-lang.org/tools/install) 
-- [zkMIPS toolchain](https://docs.zkm.io/introduction/installation.html)
+- [Ziren toolchain](https://docs.zkm.io/introduction/installation.html)
 - Register on [Alchemy](https://www.alchemy.com/) or [Chainstack](https://chainstack.com/)​​ to get ​​`rpc url`​ and `ws url`​. But [Chainstack](https://chainstack.com/) does not support archival/historical `eth_getProof` calls.
 
 ### RPC Node Requirement

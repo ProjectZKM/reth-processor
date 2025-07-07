@@ -402,7 +402,7 @@ where
     }
 }
 
-// Block execution in zkMIPS is a long-running, blocking task, so run it in a separate thread.
+// Block execution in Ziren is a long-running, blocking task, so run it in a separate thread.
 async fn execute_client<P: Prover<DefaultProverComponents> + 'static>(
     number: u64,
     client: Arc<P>,
