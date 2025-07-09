@@ -11,10 +11,16 @@ use reth_storage_errors::{db::DatabaseError, provider::ProviderError};
 use revm_database_interface::DatabaseRef;
 use revm_primitives::{Address, B256};
 use revm_state::{AccountInfo, Bytecode};
-use std::{borrow::Cow, collections::{BTreeMap, BTreeSet}, fs, marker::PhantomData, sync::{Arc, RwLock}};
-use std::path::Path;
-use std::thread::sleep;
-use std::time::Duration;
+use std::{
+    borrow::Cow,
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    marker::PhantomData,
+    path::Path,
+    sync::{Arc, RwLock},
+    thread::sleep,
+    time::Duration,
+};
 use tracing::{debug, info};
 
 /// A database that fetches data from a [Provider] over a [Transport].
@@ -162,7 +168,10 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
             .get(&address)
             .and_then(|inner| inner.get(&index).copied())
         {
-            debug!("fetching account info from cache for address {}, index {:x}, value {}", address, index, value);
+            debug!(
+                "fetching account info from cache for address {}, index {:x}, value {}",
+                address, index, value
+            );
             return Ok(value);
         }
 
@@ -173,7 +182,10 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
             .block_id(self.block)
             .await
             .map_err(|e| RpcDbError::GetStorageError(address, index, e.to_string()))?;
-        debug!("[fetch_storage_at] fetching storage value at address: {}, index: {}, value {}", address, index, value);
+        debug!(
+            "[fetch_storage_at] fetching storage value at address: {}, index: {}, value {}",
+            address, index, value
+        );
 
         // Record the storage value to the state.
         let mut storage_values = self.storage.write().map_err(|_| RpcDbError::Poisoned)?;
@@ -207,10 +219,7 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
     /// Preloads accounts and storage for the current block.
     ///  We use debug_provider.
     pub async fn preload_accounts_and_storage(&self) -> Result<(), RpcDbError> {
-        info!(
-            "Preloading accounts and storage for block: {}",
-            self.block
-        );
+        info!("Preloading accounts and storage for block: {}", self.block);
         let current_block = self.block.as_u64().unwrap() + 1;
         let params = (
             format!("0x{:x}", current_block),
@@ -228,10 +237,8 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
             .debug_provider
             .raw_request("debug_traceBlockByNumber".into(), params)
             .await
-            .map_err(|e| {
-                RpcDbError::GetBlockError(current_block, e.to_string())
-            })?;
-        info!("rpc request took: {:?}, got {} txs", now.elapsed(),prestate.0.len());
+            .map_err(|e| RpcDbError::GetBlockError(current_block, e.to_string()))?;
+        info!("rpc request took: {:?}, got {} txs", now.elapsed(), prestate.0.len());
 
         for tx_trace in prestate.0 {
             for (address, account) in tx_trace.result {
@@ -258,7 +265,9 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
                 if let Some(storage_map) = account.storage {
                     let mut storage_lock =
                         self.storage.write().map_err(|_| RpcDbError::Poisoned)?;
-                    let account_storage = storage_lock.entry(address).or_insert_with(|| HashMap::with_hasher(Default::default()));
+                    let account_storage = storage_lock
+                        .entry(address)
+                        .or_insert_with(|| HashMap::with_hasher(Default::default()));
 
                     for (slot, value) in storage_map {
                         account_storage.entry(slot).or_insert(value);

@@ -92,7 +92,7 @@ async fn main() -> eyre::Result<()> {
         eth_proofs_client,
         config,
     )
-        .await?;
+    .await?;
 
     info!("Latest block number: {}", http_provider.get_block_number().await?);
 

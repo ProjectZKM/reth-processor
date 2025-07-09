@@ -11,5 +11,6 @@ pub fn main() {
     let (block_hash, _, _) = verify_block(&input);
 
     // Commit the block hash.
+    println!("Block hash {:x?}", block_hash);
     zkm_zkvm::io::commit(&block_hash);
 }

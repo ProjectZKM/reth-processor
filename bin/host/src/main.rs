@@ -63,7 +63,7 @@ async fn main() -> eyre::Result<()> {
         persist_execution_report,
         config,
     )
-        .await?;
+    .await?;
 
     executor.execute(block_number).await?;
 

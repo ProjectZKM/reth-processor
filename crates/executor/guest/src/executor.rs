@@ -130,6 +130,7 @@ where
             excess_blob_gas: input.current_block.header().excess_blob_gas(),
             parent_beacon_block_root: input.current_block.header().parent_beacon_block_root(),
             requests_hash: input.current_block.header().requests_hash(),
+            // requests_hash: None,
         };
 
         Ok((header, parent_state_root))

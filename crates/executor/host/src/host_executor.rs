@@ -111,7 +111,6 @@ impl<C: ConfigureEvm> HostExecutor<C> {
             .try_into_recovered()
             .map_err(|_| HostError::FailedToRecoverSenders)
             .unwrap();
-        let block_executor = BasicBlockExecutor::new(self.evm_config.clone(), cache_db);
 
         // Execute the block and fetch all the necessary data along the way.
         tracing::info!(
