@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub const LINEA_GENESIS_JSON: &str = include_str!("./genesis/59144.json");
 pub const GOAT_GENESIS_JSON: &str = include_str!("./genesis/2345.json");
+pub const GOAT_TESTNET_GENESIS_JSON: &str = include_str!("./genesis/48816.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Genesis {
@@ -12,6 +13,7 @@ pub enum Genesis {
     Sepolia,
     Linea,
     GOAT,
+    GoatTestnet,
     Custom(String),
 }
 
@@ -32,7 +34,24 @@ impl TryFrom<u64> for Genesis {
             59144 => Ok(Genesis::Linea),
             11155111 => Ok(Genesis::Sepolia),
             2345 => Ok(Genesis::GOAT),
+            48816 => Ok(Genesis::GoatTestnet),
             id => Err(eyre!("The chain {id} is not supported")),
+        }
+    }
+}
+
+impl TryFrom<&Genesis> for u64 {
+    type Error = eyre::Error;
+
+    fn try_from(value: &Genesis) -> Result<Self, Self::Error> {
+        match value {
+            Genesis::Mainnet => Ok(1),
+            Genesis::OpMainnet => Ok(10),
+            Genesis::Linea => Ok(59144),
+            Genesis::Sepolia => Ok(11155111),
+            Genesis::GOAT => Ok(2345),
+            Genesis::GoatTestnet => Ok(48816),
+            Genesis::Custom(_) => Err(eyre!("Custom genesis is not supported")),
         }
     }
 }
@@ -76,6 +95,9 @@ impl TryFrom<&Genesis> for ChainSpec {
             }
             Genesis::Linea => Ok(ChainSpec::from_genesis(genesis_from_json(LINEA_GENESIS_JSON)?)),
             Genesis::GOAT => Ok(ChainSpec::from_genesis(genesis_from_json(GOAT_GENESIS_JSON)?)),
+            Genesis::GoatTestnet => {
+                Ok(ChainSpec::from_genesis(genesis_from_json(GOAT_TESTNET_GENESIS_JSON)?))
+            }
             Genesis::Custom(json) => Ok(ChainSpec::from_genesis(genesis_from_json(json)?)),
         }
     }

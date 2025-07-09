@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use alloy_consensus::{BlockHeader, Header, TxReceipt};
 use alloy_evm::EthEvmFactory;
-use alloy_primitives::Bloom;
+use alloy_primitives::{Bloom, B256};
 use reth_chainspec::ChainSpec;
 use reth_errors::BlockExecutionError;
 use reth_evm::{
@@ -52,14 +52,17 @@ where
     pub fn execute(
         &self,
         mut input: ClientExecutorInput<C::Primitives>,
-    ) -> Result<Header, ClientError> {
+    ) -> Result<(Header, B256), ClientError> {
         // Initialize the witnessed database with verified storage proofs.
         let db = profile_report!(INIT_WITNESS_DB, {
             let trie_db = input.witness_db().unwrap();
             WrapDatabaseRef(trie_db)
         });
 
-        let block_executor = BlockExecutor::new(self.evm_config.clone(), db, input.opcode_tracking);
+        let chain_id: u64 = (&input.genesis).try_into().expect("convert chain id err");
+
+        let block_executor =
+            BlockExecutor::new(self.evm_config.clone(), db, input.opcode_tracking, chain_id);
 
         let block = profile_report!(RECOVER_SENDERS, {
             C::Primitives::from_input_block(input.current_block.clone())
@@ -90,6 +93,8 @@ where
             input.current_block.header().number(),
             vec![execution_output.result.requests],
         );
+
+        let parent_state_root = input.parent_state.state_root();
 
         // Verify the state root.
         let state_root = profile_report!(COMPUTE_STATE_ROOT, {
@@ -127,7 +132,7 @@ where
             requests_hash: input.current_block.header().requests_hash(),
         };
 
-        Ok(header)
+        Ok((header, parent_state_root))
     }
 }
 
@@ -155,11 +160,16 @@ enum BlockExecutor<'a, C> {
 }
 
 impl<'a, C: ConfigureEvm> BlockExecutor<'a, C> {
-    fn new(strategy_factory: C, db: WrapDatabaseRef<TrieDB<'a>>, opcode_tracking: bool) -> Self {
+    fn new(
+        strategy_factory: C,
+        db: WrapDatabaseRef<TrieDB<'a>>,
+        opcode_tracking: bool,
+        chain_id: u64,
+    ) -> Self {
         if opcode_tracking {
             Self::OpcodeTracking(OpCodesTrackingBlockExecutor::new(strategy_factory, db))
         } else {
-            Self::Basic(BasicBlockExecutor::new(strategy_factory, db))
+            Self::Basic(BasicBlockExecutor::new(strategy_factory, db, Some(chain_id)))
         }
     }
 }

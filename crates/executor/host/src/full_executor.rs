@@ -99,11 +99,15 @@ pub trait BlockExecutor<C: ExecutorComponents> {
 
             let proving_duration = proving_start.elapsed();
             let proof_bytes = bincode::serialize(&proof_with_cycles.0.proof).unwrap();
+            let proof_bytes = bincode::serialize(&proof.proof).unwrap();
+            let public_values_bytes = bincode::serialize(&proof.public_values).unwrap();
 
             hooks
                 .on_proving_end(
                     client_input.current_block.number,
                     &proof_bytes,
+                    &public_values_bytes,
+                    &proof.zkm_version,
                     self.vk().as_ref(),
                     proof_with_cycles.1,
                     proving_duration,
@@ -412,7 +416,7 @@ where
     }
 }
 
-// Block execution in zkMIPS is a long-running, blocking task, so run it in a separate thread.
+// Block execution in Ziren is a long-running, blocking task, so run it in a separate thread.
 async fn execute_client<P: Prover<DefaultProverComponents> + 'static>(
     number: u64,
     client: Arc<P>,

@@ -12,12 +12,12 @@ pub mod tracking;
 mod into_primitives;
 pub use into_primitives::{FromInput, IntoInput, IntoPrimitives, ValidateBlockPostExecution};
 
-use alloy_primitives::FixedBytes;
+use alloy_primitives::B256;
 use executor::{EthClientExecutor, DESERIALZE_INPUTS};
 use io::EthClientExecutorInput;
 use std::sync::Arc;
 
-pub fn verify_block_hash(input: &Vec<u8>) -> FixedBytes<32> {
+pub fn verify_block(input: &Vec<u8>) -> (B256, B256, B256) {
     println!("cycle-tracker-report-start: {}", DESERIALZE_INPUTS);
     let input = bincode::deserialize::<EthClientExecutorInput>(input).unwrap();
     println!("cycle-tracker-report-end: {}", DESERIALZE_INPUTS);
@@ -27,7 +27,7 @@ pub fn verify_block_hash(input: &Vec<u8>) -> FixedBytes<32> {
         Arc::new((&input.genesis).try_into().unwrap()),
         input.custom_beneficiary,
     );
-    let header = executor.execute(input).expect("failed to execute client");
+    let (header, prev_state_root) = executor.execute(input).expect("failed to execute client");
     let block_hash = header.hash_slow();
-    block_hash
+    (block_hash, header.state_root, prev_state_root)
 }

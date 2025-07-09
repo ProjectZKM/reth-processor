@@ -19,7 +19,7 @@ latest_proof.json
 # Env
 .env
 
-# zkMIPS ELF files
+# Ziren ELF files
 elf
 program.bin
 stdin.bin

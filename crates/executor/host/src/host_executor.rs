@@ -101,6 +101,11 @@ impl<C: ConfigureEvm> HostExecutor<C> {
         tracing::info!("preloaded accounts and storage took {:?}", now.elapsed());
         let cache_db = CacheDB::new(rpc_db);
 
+        let chain_id: u64 = (&genesis).try_into().unwrap();
+        tracing::info!("chain id: {}", chain_id);
+
+        let block_executor =
+            BasicBlockExecutor::new(self.evm_config.clone(), cache_db, Some(chain_id));
         let block = current_block
             .clone()
             .try_into_recovered()

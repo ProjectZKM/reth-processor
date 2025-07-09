@@ -26,7 +26,7 @@ guest-executor.workspace = true
 primitives.workspace = true
 provider.workspace = true
 
-# zkMIPS
+# Ziren
 zkm-sdk.workspace = true
 
 # alloy
