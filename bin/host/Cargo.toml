@@ -25,6 +25,7 @@ url.workspace = true
 
 # Ziren
 zkm-sdk.workspace = true
+zkm-cuda-adaptor.workspace = true
 
 [dev-dependencies]
 alloy-consensus.workspace = true

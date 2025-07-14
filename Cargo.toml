@@ -51,6 +51,7 @@ zkm-build = { git = "https://github.com/ProjectZKM/Ziren" }
 zkm-core-executor = { git = "https://github.com/ProjectZKM/Ziren" }
 zkm-prover = { git = "https://github.com/ProjectZKM/Ziren" }
 zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren" }
+zkm-cuda-adaptor = { git = "https://github.com/ProjectZKM/Ziren" }
 
 # zkm-build = { path = "../Ziren/crates/build" }
 # zkm-core-executor = { path = "../Ziren/crates/core/executor" }
@@ -198,3 +199,10 @@ p256 = { git = "https://github.com/ziren-patches/elliptic-curves", branch = "pat
 alloy-primitives-v1-0-0 = { git = "https://github.com/ziren-patches/core.git", package = "alloy-primitives", branch = "patch-alloy-primitives-1.0.0" }
 alloy-primitives-v1-1-0 = { git = "https://github.com/ziren-patches/core.git", package = "alloy-primitives", branch = "patch-alloy-primitives-1.1.0" }
 alloy-primitives-v1-1-2 = { git = "https://github.com/ziren-patches/core.git", package = "alloy-primitives", branch = "patch-alloy-primitives-1.1.2" }
+
+[patch."https://github.com/ProjectZKM/Ziren"]
+zkm-build = { path = "../Remote/zkm2/crates/build" }
+zkm-core-executor = { path = "../Remote/zkm2/crates/core/executor" }
+zkm-prover = { path = "../Remote/zkm2/crates/prover" }
+zkm-sdk = { path = "../Remote/zkm2/crates/sdk" }
+zkm-cuda-adaptor = { path = "../Remote/zkm2/crates/cuda-adaptor" }

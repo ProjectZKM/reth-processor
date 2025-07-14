@@ -9,7 +9,8 @@ use provider::create_provider;
 use tracing_subscriber::{
     filter::EnvFilter, fmt, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
 };
-use zkm_sdk::{include_elf, ProverClient};
+use zkm_cuda_adaptor::CudaProver;
+use zkm_sdk::include_elf;
 
 mod cli;
 use cli::HostArgs;
@@ -47,7 +48,10 @@ async fn main() -> eyre::Result<()> {
         args.opcode_tracking,
     );
 
-    let prover_client = Arc::new(ProverClient::new());
+    // let prover_client = Arc::new(ProverClient::new());
+    zkm_cuda_adaptor::ffi::create_ctx();
+    let cuda_client = CudaProver::new();
+    let prover_client = Arc::new(cuda_client);
 
     let elf = include_elf!("reth").to_vec();
     let block_execution_strategy_factory =
@@ -55,7 +59,7 @@ async fn main() -> eyre::Result<()> {
     let provider = config.rpc_url.as_ref().map(|url| create_provider(url.clone()));
     let debug_provider = config.debug_rpc_url.as_ref().map(|url| create_provider(url.clone()));
 
-    let executor = build_executor::<EthExecutorComponents<_>, _>(
+    let executor = build_executor::<EthExecutorComponents<_, _>, _>(
         elf,
         provider,
         debug_provider,
@@ -64,7 +68,7 @@ async fn main() -> eyre::Result<()> {
         persist_execution_report,
         config,
     )
-    .await?;
+        .await?;
 
     executor.execute(block_number).await?;
 
