@@ -1,7 +1,7 @@
 #![cfg_attr(not(test), allow(unused_crate_dependencies))]
 
 use alloy_chains::Chain;
-use alloy_evm::EthEvmFactory;
+use reth_evm::{precompiles::PrecompilesMap, Database, EvmEnv, EvmFactory};
 pub use error::Error as HostError;
 use guest_executor::custom::CustomEvmFactory;
 use primitives::genesis::Genesis;
@@ -38,13 +38,10 @@ mod utils;
 pub fn create_eth_block_execution_strategy_factory(
     genesis: &Genesis,
     custom_beneficiary: Option<Address>,
-) -> EthEvmConfig<CustomEvmFactory<EthEvmFactory>> {
+) -> EthEvmConfig<ChainSpec, CustomEvmFactory> {
     let chain_spec: Arc<ChainSpec> = Arc::new(genesis.try_into().unwrap());
 
-    EthEvmConfig::new_with_evm_factory(
-        chain_spec,
-        CustomEvmFactory::<EthEvmFactory>::new(custom_beneficiary),
-    )
+    EthEvmConfig::new_with_evm_factory(chain_spec, CustomEvmFactory::new(custom_beneficiary))
 }
 
 pub fn create_op_block_execution_strategy_factory(genesis: &Genesis) -> OpEvmConfig {
@@ -52,6 +49,7 @@ pub fn create_op_block_execution_strategy_factory(genesis: &Genesis) -> OpEvmCon
 
     OpEvmConfig::optimism(chain_spec)
 }
+
 #[derive(Debug)]
 pub struct Config {
     pub chain: Chain,

@@ -3,7 +3,6 @@ use std::iter::once;
 use alloy_consensus::{Block, BlockHeader, Header};
 use alloy_primitives::map::HashMap;
 use itertools::Itertools;
-use mpt::EthereumState;
 use primitives::genesis::Genesis;
 use reth_errors::ProviderError;
 use reth_ethereum_primitives::EthPrimitives;
@@ -13,6 +12,7 @@ use revm::{
     state::{AccountInfo, Bytecode},
     DatabaseRef,
 };
+use reth_trie_zkvm::ZkvmTrie;
 use revm_primitives::{keccak256, Address, B256, U256};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -42,7 +42,7 @@ pub struct ClientExecutorInput<P: NodePrimitives> {
     #[serde_as(as = "Vec<alloy_consensus::serde_bincode_compat::Header>")]
     pub ancestor_headers: Vec<Header>,
     /// Network state as of the parent block.
-    pub parent_state: EthereumState,
+    pub parent_state: ZkvmTrie,
     /// Requests to account state and storage slots.
     pub state_requests: HashMap<Address, Vec<U256>>,
     /// Account bytecodes.
@@ -70,7 +70,7 @@ impl<P: NodePrimitives> ClientExecutorInput<P> {
 
 impl<P: NodePrimitives> WitnessInput for ClientExecutorInput<P> {
     #[inline(always)]
-    fn state(&self) -> &EthereumState {
+    fn state(&self) -> &ZkvmTrie {
         &self.parent_state
     }
 
@@ -97,14 +97,14 @@ impl<P: NodePrimitives> WitnessInput for ClientExecutorInput<P> {
 
 #[derive(Debug)]
 pub struct TrieDB<'a> {
-    inner: &'a EthereumState,
+    inner: &'a ZkvmTrie,
     block_hashes: HashMap<u64, B256>,
     bytecode_by_hash: HashMap<B256, &'a Bytecode>,
 }
 
 impl<'a> TrieDB<'a> {
     pub fn new(
-        inner: &'a EthereumState,
+        inner: &'a ZkvmTrie,
         block_hashes: HashMap<u64, B256>,
         bytecode_by_hash: HashMap<B256, &'a Bytecode>,
     ) -> Self {
@@ -167,7 +167,7 @@ impl DatabaseRef for TrieDB<'_> {
 /// A trait for constructing [`WitnessDb`].
 pub trait WitnessInput {
     /// Gets a reference to the state from which account info and storage slots are loaded.
-    fn state(&self) -> &EthereumState;
+    fn state(&self) -> &ZkvmTrie;
 
     /// Gets the state trie root hash that the state referenced by
     /// [state()](trait.WitnessInput#tymethod.state) must conform to.
@@ -196,7 +196,7 @@ pub trait WitnessInput {
     fn witness_db(&self) -> Result<TrieDB<'_>, ClientError> {
         let state = self.state();
 
-        if self.state_anchor() != state.state_root() {
+        if self.state_anchor() != state.compute_state_root() {
             return Err(ClientError::MismatchedStateRoot);
         }
 

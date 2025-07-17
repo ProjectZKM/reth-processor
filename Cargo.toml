@@ -57,23 +57,25 @@ zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren" }
 # zkm-prover = { path = "../Ziren/crates/prover" }
 # zkm-sdk = { path = "../Ziren/crates/sdk" }
 
-# reth goat
-reth-primitives-traits = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-consensus = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-evm = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-evm-ethereum = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-optimism-evm = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-optimism-primitives = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-storage-errors = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-trie = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-chainspec = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-optimism-chainspec = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-execution-types = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-errors = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-ethereum-consensus = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-ethereum-primitives = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false, features = ["serde"] }
-reth-optimism-consensus = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
-reth-optimism-forks = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.3.10", default-features = false }
+# reth
+reth-primitives-traits = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-consensus = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-evm = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-evm-ethereum = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-optimism-evm = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-optimism-primitives = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-storage-errors = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-trie = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-trie-zkvm = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-chainspec = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-optimism-chainspec = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-execution-types = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-errors = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-ethereum-consensus = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-ethereum-primitives = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false, features = ["serde"] }
+reth-optimism-consensus = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-optimism-forks = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
+reth-stateless = { git = "https://github.com/ziren-patches/reth", branch = "patch-1.5.1", default-features = false }
 
 # reth-primitives-traits = { path = "../patch/reth/crates/primitives-traits", default-features = false }
 # reth-consensus = { path = "../patch/reth/crates/consensus/consensus", default-features = false }
@@ -92,21 +94,21 @@ reth-optimism-forks = { git = "https://github.com/ziren-patches/reth", branch = 
 # reth-optimism-consensus = { path = "../patch/reth/crates/optimism/consensus", default-features = false }
 # reth-optimism-forks = { path = "../patch/reth/crates/optimism/hardforks", default-features = false }
 
-# revm goat
-revm = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", features = [
+# revm
+revm = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", features = [
     "serde",
     "kzg-rs",
     "bn",
 ], default-features = false }
-revm-bytecode = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", default-features = false }
-revm-state = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", default-features = false }
-revm-primitives = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", features = [
+revm-bytecode = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", default-features = false }
+revm-state = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", default-features = false }
+revm-primitives = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", features = [
     "serde",
 ], default-features = false }
-revm-interpreter = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", default-features = false }
-revm-precompile = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", default-features = false }
-revm-database-interface = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", default-features = false }
-op-revm = { git = "https://github.com/ziren-patches/revm", branch = "patch-22.0.0", default-features = false }
+revm-interpreter = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", default-features = false }
+revm-precompile = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", default-features = false }
+revm-database-interface = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", default-features = false }
+op-revm = { git = "https://github.com/ziren-patches/revm", branch = "patch-27.0.2", default-features = false }
 revm-inspectors = { git = "https://github.com/ziren-patches/revm-inspectors", branch = "patch-0.19.0" }
 
 # revm = { path = "../patch/revm/crates/revm", features = [
@@ -126,30 +128,51 @@ revm-inspectors = { git = "https://github.com/ziren-patches/revm-inspectors", br
 
 # alloy
 alloy-chains = { version = "0.2.0", default-features = false }
-alloy-primitives = { version = "1.0.0", default-features = false, features = ["sha3-keccak", "map-foldhash"] }
+alloy-primitives = { version = "1.2.0", default-features = false, features = ["sha3-keccak", "map-foldhash"] }
 alloy-rlp = "0.3.10"
 alloy-trie = "0.8.1"
 
-# alloy goat
-alloy-evm = { git = "https://github.com/ziren-patches/evm", branch = "patch-0.4.0", default-features = false }
-alloy-provider = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false, features = [
+alloy-evm = { git = "https://github.com/ziren-patches/evm", branch = "patch-0.14.0", default-features = false }
+alloy-provider = { version = "1.0.13", default-features = false, features = [
     "reqwest",
     "reqwest-rustls-tls",
+    "debug-api",
 ] }
-alloy-rpc-types = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false, features = [
+alloy-rpc-types = { version = "1.0.13", default-features = false, features = [
     "eth",
 ] }
-alloy-json-rpc = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
-alloy-genesis = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
-alloy-consensus = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false, features = ["serde", "serde-bincode-compat"] }
-alloy-network = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
-alloy-transport = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
-alloy-transport-http = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", features = [
+alloy-json-rpc = { version = "1.0.13", default-features = false }
+alloy-genesis = { version = "1.0.13", default-features = false }
+alloy-consensus = { version = "1.0.13", default-features = false, features = ["serde", "serde-bincode-compat"] }
+alloy-network = { version = "1.0.13", default-features = false }
+alloy-transport = { version = "1.0.13", default-features = false }
+alloy-transport-http = { version = "1.0.13", features = [
     "reqwest-rustls-tls",
 ], default-features = false }
-alloy-transport-ws = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0" }
-alloy-rpc-client = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
-alloy-eips = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
+alloy-transport-ws = { version = "1.0.13" }
+alloy-rpc-client = { version = "1.0.13", default-features = false }
+alloy-rpc-types-debug = { version = "1.0.18", default-features = false }
+alloy-eips = { version = "1.0.13", default-features = false }
+alloy-serde = "1.0.13"
+
+# alloy-provider = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false, features = [
+#     "reqwest",
+#     "reqwest-rustls-tls",
+# ] }
+# alloy-rpc-types = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false, features = [
+#     "eth",
+# ] }
+# alloy-json-rpc = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
+# alloy-genesis = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
+# alloy-consensus = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false, features = ["serde", "serde-bincode-compat"] }
+# alloy-network = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
+# alloy-transport = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
+# alloy-transport-http = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", features = [
+#     "reqwest-rustls-tls",
+# ], default-features = false }
+# alloy-transport-ws = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0" }
+# alloy-rpc-client = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
+# alloy-eips = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0.14.0", default-features = false }
 
 # alloy-evm = { path = "../patch/evm/crates/evm", default-features = false }
 # alloy-provider = { path = "../patch/alloy/crates/provider", default-features = false, features = [
@@ -171,11 +194,15 @@ alloy-eips = { git = "https://github.com/ziren-patches/alloy", branch = "patch-0
 # alloy-rpc-client = { path = "../patch/alloy/crates/rpc-client", default-features = false }
 # alloy-eips = { path = "../patch/alloy/crates/eips", default-features = false }
 
-# op goat
-alloy-op-evm = { git = "https://github.com/ziren-patches/evm", branch = "patch-0.4.0", default-features = false }
-op-alloy-consensus = { git = "https://github.com/ziren-patches/op-alloy", branch = "patch-0.13.0" }
-op-alloy-network = { git = "https://github.com/ziren-patches/op-alloy", branch = "patch-0.13.0" }
-op-alloy-rpc-types = { git = "https://github.com/ziren-patches/op-alloy", branch = "patch-0.13.0" }
+# op
+alloy-op-evm = { git = "https://github.com/ziren-patches/evm", branch = "patch-0.14.0", default-features = false }
+op-alloy-consensus = "0.18.7"
+op-alloy-network = "0.18.7"
+op-alloy-rpc-types = "0.18.7"
+
+# op-alloy-consensus = { git = "https://github.com/ziren-patches/op-alloy", branch = "patch-0.13.0" }
+# op-alloy-network = { git = "https://github.com/ziren-patches/op-alloy", branch = "patch-0.13.0" }
+# op-alloy-rpc-types = { git = "https://github.com/ziren-patches/op-alloy", branch = "patch-0.13.0" }
 
 # alloy-op-evm = { path = "../patch/evm/crates/evm", default-features = false }
 # op-alloy-consensus = { path = "../patch/op-alloy/crates/consensus" }

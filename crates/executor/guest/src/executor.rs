@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use alloy_consensus::{BlockHeader, Header, TxReceipt};
-use alloy_evm::EthEvmFactory;
 use alloy_primitives::{Bloom, B256};
 use reth_chainspec::ChainSpec;
 use reth_errors::BlockExecutionError;
@@ -33,7 +32,7 @@ pub const VALIDATE_EXECUTION: &str = "validate block post-execution";
 pub const ACCRUE_LOG_BLOOM: &str = "accrue logs bloom";
 pub const COMPUTE_STATE_ROOT: &str = "compute state root";
 
-pub type EthClientExecutor = ClientExecutor<EthEvmConfig<CustomEvmFactory<EthEvmFactory>>>;
+pub type EthClientExecutor = ClientExecutor<EthEvmConfig<ChainSpec, CustomEvmFactory>>;
 
 #[cfg(feature = "optimism")]
 pub type OpClientExecutor = ClientExecutor<reth_optimism_evm::OpEvmConfig>;
@@ -94,12 +93,12 @@ where
             vec![execution_output.result.requests],
         );
 
-        let parent_state_root = input.parent_state.state_root();
+        let parent_state_root = input.parent_state.compute_state_root();
 
         // Verify the state root.
         let state_root = profile_report!(COMPUTE_STATE_ROOT, {
             input.parent_state.update(&executor_outcome.hash_state_slow::<KeccakKeyHasher>());
-            input.parent_state.state_root()
+            input.parent_state.compute_state_root()
         });
 
         if state_root != input.current_block.header().state_root() {
@@ -141,11 +140,19 @@ impl EthClientExecutor {
         Self {
             evm_config: EthEvmConfig::new_with_evm_factory(
                 chain_spec,
-                CustomEvmFactory::<EthEvmFactory>::new(custom_beneficiary),
+                CustomEvmFactory::new(custom_beneficiary),
             ),
         }
     }
 }
+
+// impl EthExecutorSpec for EthClientExecutor {
+//     type Primitives = Ethereum;
+
+//     fn primitives(&self) -> Self::Primitives {
+//         Ethereum::default()
+//     }
+// }
 
 #[cfg(feature = "optimism")]
 impl OpClientExecutor {
@@ -164,12 +171,12 @@ impl<'a, C: ConfigureEvm> BlockExecutor<'a, C> {
         strategy_factory: C,
         db: WrapDatabaseRef<TrieDB<'a>>,
         opcode_tracking: bool,
-        chain_id: u64,
+        _chain_id: u64,
     ) -> Self {
         if opcode_tracking {
             Self::OpcodeTracking(OpCodesTrackingBlockExecutor::new(strategy_factory, db))
         } else {
-            Self::Basic(BasicBlockExecutor::new(strategy_factory, db, Some(chain_id)))
+            Self::Basic(BasicBlockExecutor::new(strategy_factory, db))
         }
     }
 }

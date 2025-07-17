@@ -202,7 +202,7 @@ where
 {
     provider: P,
     debug_provider: P,
-    host_executor: HostExecutor<C::EvmConfig>,
+    host_executor: HostExecutor<C::EvmConfig, C::ChainSpec>,
     client: Arc<C::Prover>,
     pk: Arc<ZKMProvingKey>,
     vk: Arc<ZKMVerifyingKey>,
@@ -236,7 +236,10 @@ where
         Ok(Self {
             provider,
             debug_provider,
-            host_executor: HostExecutor::new(evm_config),
+            host_executor: HostExecutor::new(
+                evm_config,
+                Arc::new(C::try_into_chain_spec(&config.genesis)?),
+            ),
             client,
             pk: Arc::new(pk),
             vk: Arc::new(vk),
