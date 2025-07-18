@@ -1,5 +1,7 @@
-use zkm_build::build_program;
+use zkm_build::{build_program_with_args, BuildArgs};
 
 fn main() {
-    build_program("../guest");
+    let mut args: BuildArgs = Default::default();
+    args.rustflags.push("llvm-args=--pre-RA-sched=list-ilp".to_string());
+    build_program_with_args("../guest", args);
 }
