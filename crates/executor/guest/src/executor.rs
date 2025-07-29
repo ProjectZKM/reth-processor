@@ -19,9 +19,9 @@ use crate::{
     custom::CustomEvmFactory,
     error::ClientError,
     into_primitives::FromInput,
-    io::{ClientExecutorInput, TrieDB},
+    io::{ClientExecutorInput, TrieDB, WitnessInput},
     tracking::OpCodesTrackingBlockExecutor,
-    ValidateBlockPostExecution,
+    BlockValidator,
 };
 
 pub const DESERIALZE_INPUTS: &str = "deserialize inputs";
@@ -32,29 +32,33 @@ pub const VALIDATE_EXECUTION: &str = "validate block post-execution";
 pub const ACCRUE_LOG_BLOOM: &str = "accrue logs bloom";
 pub const COMPUTE_STATE_ROOT: &str = "compute state root";
 
-pub type EthClientExecutor = ClientExecutor<EthEvmConfig<ChainSpec, CustomEvmFactory>>;
+pub type EthClientExecutor = ClientExecutor<EthEvmConfig<ChainSpec, CustomEvmFactory>, ChainSpec>;
 
 #[cfg(feature = "optimism")]
-pub type OpClientExecutor = ClientExecutor<reth_optimism_evm::OpEvmConfig>;
+pub type OpClientExecutor =
+    ClientExecutor<reth_optimism_evm::OpEvmConfig, reth_optimism_chainspec::OpChainSpec>;
 
 /// An executor that executes a block inside a zkVM.
 #[derive(Debug, Clone)]
-pub struct ClientExecutor<C: ConfigureEvm> {
+pub struct ClientExecutor<C: ConfigureEvm, CS> {
     evm_config: C,
+    chain_spec: Arc<CS>,
 }
 
-impl<C> ClientExecutor<C>
+impl<C, CS> ClientExecutor<C, CS>
 where
     C: ConfigureEvm,
-    C::Primitives: FromInput + ValidateBlockPostExecution,
+    C::Primitives: FromInput + BlockValidator<CS>,
 {
     pub fn execute(
         &self,
         mut input: ClientExecutorInput<C::Primitives>,
     ) -> Result<(Header, B256), ClientError> {
+        let sealed_headers = input.sealed_headers().collect::<Vec<_>>();
+
         // Initialize the witnessed database with verified storage proofs.
         let db = profile_report!(INIT_WITNESS_DB, {
-            let trie_db = input.witness_db().unwrap();
+            let trie_db = input.witness_db(&sealed_headers).unwrap();
             WrapDatabaseRef(trie_db)
         });
 
@@ -74,7 +78,11 @@ where
 
         // Validate the block post execution.
         profile_report!(VALIDATE_EXECUTION, {
-            C::Primitives::validate_block_post_execution(&block, &input.genesis, &execution_output)
+            C::Primitives::validate_block_post_execution(
+                &block,
+                self.chain_spec.clone(),
+                &execution_output,
+            )
         })?;
 
         // Accumulate the logs bloom.
@@ -93,12 +101,12 @@ where
             vec![execution_output.result.requests],
         );
 
-        let parent_state_root = input.parent_state.compute_state_root();
+        let parent_state_root = input.parent_state.state_root();
 
         // Verify the state root.
         let state_root = profile_report!(COMPUTE_STATE_ROOT, {
             input.parent_state.update(&executor_outcome.hash_state_slow::<KeccakKeyHasher>());
-            input.parent_state.compute_state_root()
+            input.parent_state.state_root()
         });
 
         if state_root != input.current_block.header().state_root() {
@@ -139,25 +147,21 @@ impl EthClientExecutor {
     pub fn eth(chain_spec: Arc<ChainSpec>, custom_beneficiary: Option<Address>) -> Self {
         Self {
             evm_config: EthEvmConfig::new_with_evm_factory(
-                chain_spec,
+                chain_spec.clone(),
                 CustomEvmFactory::new(custom_beneficiary),
             ),
+            chain_spec,
         }
     }
 }
 
-// impl EthExecutorSpec for EthClientExecutor {
-//     type Primitives = Ethereum;
-
-//     fn primitives(&self) -> Self::Primitives {
-//         Ethereum::default()
-//     }
-// }
-
 #[cfg(feature = "optimism")]
 impl OpClientExecutor {
     pub fn optimism(chain_spec: Arc<reth_optimism_chainspec::OpChainSpec>) -> Self {
-        Self { evm_config: reth_optimism_evm::OpEvmConfig::optimism(chain_spec) }
+        Self {
+            evm_config: reth_optimism_evm::OpEvmConfig::optimism(chain_spec.clone()),
+            chain_spec,
+        }
     }
 }
 

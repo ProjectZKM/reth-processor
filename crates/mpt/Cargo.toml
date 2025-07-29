@@ -18,12 +18,12 @@ reth-trie.workspace = true
 # alloy
 alloy-primitives.workspace = true
 alloy-rlp.workspace = true
+alloy-rpc-types.workspace = true
+alloy-rpc-types-debug = {workspace = true, optional = true }
 
 [dev-dependencies]
 hex-literal.workspace = true
 
-mpt = { path = ".", features = ["preimage_context"] }
-
 [features]
-default = []
-preimage_context = []
+default = ["execution-witness"]
+execution-witness = ["dep:alloy-rpc-types-debug"]

@@ -21,6 +21,7 @@ primitives.workspace = true
 
 # reth
 reth-consensus.workspace = true
+reth-consensus-common.workspace = true
 reth-ethereum-consensus.workspace = true
 reth-ethereum-primitives = { workspace = true, features = ["serde-bincode-compat"] }
 reth-execution-types.workspace = true
@@ -34,8 +35,6 @@ reth-optimism-chainspec = { workspace = true, optional = true }
 reth-optimism-primitives = { workspace = true, optional = true, features = ["serde", "serde-bincode-compat"]}
 reth-errors.workspace = true
 reth-chainspec.workspace = true
-reth-stateless.workspace = true
-reth-trie-zkvm.workspace = true
 
 # revm
 revm.workspace = true

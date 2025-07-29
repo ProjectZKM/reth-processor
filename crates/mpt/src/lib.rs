@@ -1,13 +1,20 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
-use alloy_primitives::{map::HashMap, Address, B256};
+use alloy_primitives::{keccak256, map::HashMap, Address, B256};
+use alloy_rpc_types::EIP1186AccountProofResponse;
 use reth_trie::{AccountProof, HashedPostState, HashedStorage, TrieAccount};
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "execution-witness")]
+mod execution_witness;
 
 /// Module containing MPT code adapted from `zeth`.
 mod mpt;
 pub use mpt::Error;
-use mpt::{proofs_to_tries, transition_proofs_to_tries, MptNode};
+use mpt::{
+    mpt_from_proof, parse_proof, proofs_to_tries, resolve_nodes, transition_proofs_to_tries,
+    MptNode,
+};
 
 /// Ethereum state trie and account storage tries.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,11 +41,51 @@ impl EthereumState {
         proofs_to_tries(state_root, proofs)
     }
 
+    /// Builds Ethereum state tries from a EIP-1186 proof.
+    pub fn from_account_proof(proof: EIP1186AccountProofResponse) -> Result<Self, FromProofError> {
+        let mut storage_tries = HashMap::with_hasher(Default::default());
+        let mut storage_nodes = HashMap::with_hasher(Default::default());
+        let mut storage_root_node = MptNode::default();
+
+        for storage_proof in &proof.storage_proof {
+            let proof_nodes = parse_proof(&storage_proof.proof)?;
+            mpt_from_proof(&proof_nodes)?;
+
+            // the first node in the proof is the root
+            if let Some(node) = proof_nodes.first() {
+                storage_root_node = node.clone();
+            }
+
+            proof_nodes.into_iter().for_each(|node| {
+                storage_nodes.insert(node.reference(), node);
+            });
+        }
+
+        storage_tries
+            .insert(keccak256(proof.address), resolve_nodes(&storage_root_node, &storage_nodes));
+
+        let state = EthereumState {
+            state_trie: MptNode::from_account_proof(&proof.account_proof)?,
+            storage_tries,
+        };
+
+        Ok(state)
+    }
+
+    #[cfg(feature = "execution-witness")]
+    pub fn from_execution_witness(
+        witness: &alloy_rpc_types_debug::ExecutionWitness,
+        pre_state_root: B256,
+    ) -> Self {
+        let (state_trie, storage_tries) =
+            execution_witness::build_validated_tries(witness, pre_state_root).unwrap();
+
+        Self { state_trie, storage_tries }
+    }
+
     /// Mutates state based on diffs provided in [`HashedPostState`].
     pub fn update(&mut self, post_state: &HashedPostState) {
         for (hashed_address, account) in post_state.accounts.iter() {
-            let hashed_address = hashed_address.as_slice();
-
             match account {
                 Some(account) => {
                     let state_storage = &post_state
@@ -47,7 +94,7 @@ impl EthereumState {
                         .cloned()
                         .unwrap_or_else(|| HashedStorage::new(false));
                     let storage_root = {
-                        let storage_trie = self.storage_tries.get_mut(hashed_address).unwrap();
+                        let storage_trie = self.storage_tries.entry(*hashed_address).or_default();
 
                         if state_storage.wiped {
                             storage_trie.clear();
@@ -71,10 +118,10 @@ impl EthereumState {
                         storage_root,
                         code_hash: account.get_bytecode_hash(),
                     };
-                    self.state_trie.insert_rlp(hashed_address, state_account).unwrap();
+                    self.state_trie.insert_rlp(hashed_address.as_slice(), state_account).unwrap();
                 }
                 None => {
-                    self.state_trie.delete(hashed_address).unwrap();
+                    self.state_trie.delete(hashed_address.as_slice()).unwrap();
                 }
             }
         }

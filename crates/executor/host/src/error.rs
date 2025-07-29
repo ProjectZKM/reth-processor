@@ -1,8 +1,10 @@
 use alloy_rpc_types::ConversionError;
-use alloy_transport::{RpcError, TransportError, TransportErrorKind};
+use alloy_transport::TransportError;
 use mpt::FromProofError;
 use reth_errors::BlockExecutionError;
+use reth_stateless::validation::StatelessValidationError;
 use revm_primitives::B256;
+use rpc_db::RpcDbError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -10,8 +12,12 @@ pub enum Error {
     ParseError(#[from] ConversionError),
     #[error("Transport Error: {}", .0)]
     Transport(#[from] TransportError),
+    #[error("RPC Db Error: {0}")]
+    RpcDb(#[from] RpcDbError),
     #[error("Failed to recover senders from RPC block data")]
     FailedToRecoverSenders,
+    #[error("could not deserialize ancestor headers")]
+    HeaderDeserializationFailed,
     #[error("Failed to validate post execution state")]
     PostExecutionCheck(#[from] reth_errors::ConsensusError),
     #[error("Local Execution Failed {}", .0)]
@@ -26,15 +32,10 @@ pub enum Error {
     StateRootMismatch(B256, B256),
     #[error("Failed to read the genesis file: {}", .0)]
     FailedToReadGenesisFile(#[from] std::io::Error),
+    #[error("missing required ancestor headers")]
+    MissingAncestorHeader,
+    #[error("Stateless validation error: {}", .0)]
+    StatelessErr(#[from] StatelessValidationError),
     #[error("custom error: {0}")]
     Custom(String),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum SpawnedTaskError {
-    #[error("rpc error: {0}")]
-    Rpc(#[from] RpcError<TransportErrorKind>),
-
-    #[error("proof conversion error: {0}")]
-    Proof(#[from] FromProofError),
 }
