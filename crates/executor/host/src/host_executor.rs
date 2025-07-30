@@ -63,7 +63,7 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
         &self,
         block_number: u64,
         provider: &P,
-        witness_provider: &P,
+        debug_provider: &P,
         genesis: Genesis,
         custom_beneficiary: Option<Address>,
         opcode_tracking: bool,
@@ -96,13 +96,13 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
         tracing::info!("[{}] create rpc db", block_number);
         #[cfg(not(feature = "execution-witness"))]
         let rpc_db = rpc_db::BasicRpcDb::new(
-            provider.clone(),
+            debug_provider.clone(),
             block_number - 1,
             previous_block.header().state_root(),
         );
         #[cfg(feature = "execution-witness")]
         let rpc_db = rpc_db::ExecutionWitnessRpcDb::new(
-            witness_provider,
+            debug_provider,
             block_number,
             previous_block.header().state_root(),
         )

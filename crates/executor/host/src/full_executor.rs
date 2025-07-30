@@ -30,7 +30,6 @@ pub async fn build_executor<C, P>(
     elf: Vec<u8>,
     provider: Option<P>,
     debug_provider: Option<P>,
-    witness_provider: Option<P>,
     evm_config: C::EvmConfig,
     client: Arc<C::Prover>,
     hooks: C::Hooks,
@@ -42,12 +41,10 @@ where
 {
     if let Some(provider) = provider {
         let debug_provider = debug_provider.unwrap_or(provider.clone());
-        let witness_provider = witness_provider.unwrap_or(provider.clone());
         return Ok(Either::Left(
             FullExecutor::try_new(
                 provider,
                 debug_provider,
-                witness_provider,
                 elf,
                 evm_config,
                 client,
@@ -211,9 +208,7 @@ where
     P: Provider<C::Network> + Clone,
 {
     provider: P,
-    #[allow(dead_code)]
     debug_provider: P,
-    witness_provider: P,
     host_executor: HostExecutor<C::EvmConfig, C::ChainSpec>,
     client: Arc<C::Prover>,
     pk: Arc<ZKMProvingKey>,
@@ -230,7 +225,6 @@ where
     pub async fn try_new(
         provider: P,
         debug_provider: P,
-        witness_provider: P,
         elf: Vec<u8>,
         evm_config: C::EvmConfig,
         client: Arc<C::Prover>,
@@ -249,7 +243,6 @@ where
         Ok(Self {
             provider,
             debug_provider,
-            witness_provider,
             host_executor: HostExecutor::new(
                 evm_config,
                 Arc::new(C::try_into_chain_spec(&config.genesis)?),
@@ -308,7 +301,7 @@ where
                     .execute(
                         block_number,
                         &self.provider,
-                        &self.witness_provider,
+                        &self.debug_provider,
                         self.config.genesis.clone(),
                         self.config.custom_beneficiary,
                         self.config.opcode_tracking,
