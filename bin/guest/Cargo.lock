@@ -253,8 +253,7 @@ dependencies = [
 [[package]]
 name = "alloy-primitives"
 version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6177ed26655d4e84e00b65cb494d4e0b8830e7cae7ef5d63087d445a2600fb55"
+source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.2.1#82d566258553e4f50999dd3def69734a508aabd5"
 dependencies = [
  "alloy-rlp",
  "bytes",
@@ -275,6 +274,7 @@ dependencies = [
  "serde",
  "sha3",
  "tiny-keccak",
+ "zkm-zkvm",
 ]
 
 [[package]]
@@ -3667,8 +3667,7 @@ dependencies = [
 [[package]]
 name = "sha2"
 version = "0.10.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
+source = "git+https://github.com/ziren-patches/RustCrypto-hashes?branch=patch-sha2-0.10.9#dbfdbd088ac7b55e03c0b9eb192278efe35d67dc"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -4621,23 +4620,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "alloy-primitives"
-version = "1.0.0"
-source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.0.0#1367f9d00583135013224d764b51d63ffcdd9145"
-
-[[patch.unused]]
-name = "alloy-primitives"
-version = "1.1.0"
-source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.1.0#66386c419c93166f8471d3ace213d41ffcb13635"
-
-[[patch.unused]]
-name = "alloy-primitives"
-version = "1.1.2"
-source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.1.2#288a6856fc6e4160e85903f2af1c4af92ed4ccf9"
-
-[[patch.unused]]
-name = "sha2"
-version = "0.10.8"
-source = "git+https://github.com/ziren-patches/RustCrypto-hashes?branch=patch-sha2-0.10.8#62d9223ba171ef6d5b637b275c4b982f56d0a949"
