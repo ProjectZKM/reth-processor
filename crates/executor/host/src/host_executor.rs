@@ -132,6 +132,7 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             self.chain_spec.clone(),
         )?;
 
+        tracing::info!("[{}] execute block", block_number);
         let execution_output = block_executor.execute(&block)?;
 
         // Validate the block post execution.
