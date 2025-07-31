@@ -106,12 +106,19 @@ impl<'a> TrieDB<'a> {
     }
 }
 
+/// The system address used for system calls.
+const SYSTEM_ADDRESS: Address = alloy_primitives::address!("0xfffffffffffffffffffffffffffffffffffffffe");
+
 impl DatabaseRef for TrieDB<'_> {
     /// The database error type.
     type Error = ProviderError;
 
     /// Get basic account information.
     fn basic_ref(&self, address: Address) -> Result<Option<AccountInfo>, Self::Error> {
+        if address == SYSTEM_ADDRESS {
+            return Ok(Some(AccountInfo::default()))
+        }
+
         let hashed_address = keccak256(address);
         let hashed_address = hashed_address.as_slice();
 

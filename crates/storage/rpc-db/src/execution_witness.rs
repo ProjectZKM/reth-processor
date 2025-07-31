@@ -54,10 +54,16 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
     }
 }
 
+const SYSTEM_ADDRESS: Address = alloy_primitives::address!("0xfffffffffffffffffffffffffffffffffffffffe");
+
 impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P, N> {
     type Error = ProviderError;
 
     fn basic_ref(&self, address: Address) -> Result<Option<AccountInfo>, Self::Error> {
+        if address == SYSTEM_ADDRESS {
+            return Ok(Some(AccountInfo::default()))
+        }
+
         let hash = keccak256(address);
         if let Some(mut bytes) = self
             .state
