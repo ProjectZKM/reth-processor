@@ -42,16 +42,8 @@ where
     if let Some(provider) = provider {
         let debug_provider = debug_provider.unwrap_or(provider.clone());
         return Ok(Either::Left(
-            FullExecutor::try_new(
-                provider,
-                debug_provider,
-                elf,
-                evm_config,
-                client,
-                hooks,
-                config,
-            )
-            .await?,
+            FullExecutor::try_new(provider, debug_provider, elf, evm_config, client, hooks, config)
+                .await?,
         ));
     }
 

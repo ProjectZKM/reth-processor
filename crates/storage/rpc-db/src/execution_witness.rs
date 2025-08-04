@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use alloy_consensus::Header;
 use alloy_primitives::{map::HashMap, Address, B256};
@@ -23,7 +23,7 @@ pub struct ExecutionWitnessRpcDb<P, N> {
     /// The cached bytecodes.
     pub codes: HashMap<B256, Bytecode>,
 
-    pub ancestor_headers: HashMap<u64, Header>,
+    pub ancestor_headers: BTreeMap<u64, Header>,
 
     phantom: PhantomData<N>,
 }
@@ -54,7 +54,8 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
     }
 }
 
-const SYSTEM_ADDRESS: Address = alloy_primitives::address!("0xfffffffffffffffffffffffffffffffffffffffe");
+const SYSTEM_ADDRESS: Address =
+    alloy_primitives::address!("0xfffffffffffffffffffffffffffffffffffffffe");
 
 impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P, N> {
     type Error = ProviderError;
