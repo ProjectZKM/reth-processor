@@ -10725,3 +10725,23 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "zkm-build"
+version = "1.2.1"
+source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#89b2405558af9c20460bc2d323d577c49d947098"
+
+[[patch.unused]]
+name = "zkm-core-executor"
+version = "1.2.1"
+source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#89b2405558af9c20460bc2d323d577c49d947098"
+
+[[patch.unused]]
+name = "zkm-prover"
+version = "1.2.1"
+source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#89b2405558af9c20460bc2d323d577c49d947098"
+
+[[patch.unused]]
+name = "zkm-sdk"
+version = "1.2.1"
+source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#89b2405558af9c20460bc2d323d577c49d947098"
