@@ -352,7 +352,7 @@ dependencies = [
  "serde",
  "sha3",
  "tiny-keccak",
- "zkm-zkvm 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-zkvm",
 ]
 
 [[package]]
@@ -1561,7 +1561,7 @@ dependencies = [
  "pairing 0.23.0",
  "rand_core 0.6.4",
  "subtle",
- "zkm-lib 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -4457,7 +4457,7 @@ dependencies = [
  "serdect",
  "sha2 0.10.9",
  "signature",
- "zkm-lib 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -5320,7 +5320,7 @@ dependencies = [
  "hex",
  "primeorder",
  "sha2 0.10.9",
- "zkm-lib 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -8460,7 +8460,7 @@ dependencies = [
  "num-bigint 0.4.6",
  "rand 0.8.5",
  "rustc-hex",
- "zkm-lib 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -10337,7 +10337,7 @@ dependencies = [
 [[package]]
 name = "zkm-build"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -10349,7 +10349,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-executor"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10383,14 +10383,14 @@ dependencies = [
  "typenum",
  "vec_map",
  "zkm-curves",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-stark",
 ]
 
 [[package]]
 name = "zkm-core-machine"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "bincode",
  "cbindgen",
@@ -10439,14 +10439,14 @@ dependencies = [
  "zkm-core-executor",
  "zkm-curves",
  "zkm-derive",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-stark",
 ]
 
 [[package]]
 name = "zkm-cuda"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "bincode",
  "ctrlc",
@@ -10464,7 +10464,7 @@ dependencies = [
 [[package]]
 name = "zkm-curves"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "cfg-if",
  "curve25519-dalek",
@@ -10479,14 +10479,14 @@ dependencies = [
  "serde",
  "snowbridge-amcl",
  "typenum",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-stark",
 ]
 
 [[package]]
 name = "zkm-derive"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -10495,51 +10495,20 @@ dependencies = [
 [[package]]
 name = "zkm-lib"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "bincode",
  "cfg-if",
  "elliptic-curve",
  "serde",
  "sha2 0.10.9",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
-]
-
-[[package]]
-name = "zkm-lib"
-version = "1.2.1"
-source = "git+https://github.com/ProjectZKM/Ziren#95284cc52c5234fcbc0e7fdd25c2b99fd5a30465"
-dependencies = [
- "bincode",
- "cfg-if",
- "elliptic-curve",
- "serde",
- "sha2 0.10.9",
- "zkm-primitives 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-primitives",
 ]
 
 [[package]]
 name = "zkm-primitives"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
-dependencies = [
- "bincode",
- "hex",
- "lazy_static",
- "num-bigint 0.4.6",
- "p3-field",
- "p3-koala-bear",
- "p3-monty-31",
- "p3-poseidon2",
- "p3-symmetric",
- "serde",
- "sha2 0.10.9",
-]
-
-[[package]]
-name = "zkm-primitives"
-version = "1.2.1"
-source = "git+https://github.com/ProjectZKM/Ziren#95284cc52c5234fcbc0e7fdd25c2b99fd5a30465"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "bincode",
  "hex",
@@ -10557,7 +10526,7 @@ dependencies = [
 [[package]]
 name = "zkm-prover"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10585,7 +10554,7 @@ dependencies = [
  "tracing-subscriber 0.3.20",
  "zkm-core-executor",
  "zkm-core-machine",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-recursion-circuit",
  "zkm-recursion-compiler",
  "zkm-recursion-core",
@@ -10596,7 +10565,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-circuit"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -10619,7 +10588,7 @@ dependencies = [
  "zkm-core-executor",
  "zkm-core-machine",
  "zkm-derive",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-recursion-compiler",
  "zkm-recursion-core",
  "zkm-recursion-gnark-ffi",
@@ -10629,7 +10598,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-compiler"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -10641,7 +10610,7 @@ dependencies = [
  "tracing",
  "vec_map",
  "zkm-core-machine",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-recursion-core",
  "zkm-recursion-derive",
  "zkm-stark",
@@ -10650,7 +10619,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-core"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "backtrace",
  "cbindgen",
@@ -10684,14 +10653,14 @@ dependencies = [
  "zkhash",
  "zkm-core-machine",
  "zkm-derive",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-stark",
 ]
 
 [[package]]
 name = "zkm-recursion-derive"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -10700,7 +10669,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-gnark-ffi"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10725,7 +10694,7 @@ dependencies = [
 [[package]]
 name = "zkm-sdk"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "alloy-signer",
  "alloy-signer-local",
@@ -10765,7 +10734,7 @@ dependencies = [
  "zkm-core-executor",
  "zkm-core-machine",
  "zkm-cuda",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
  "zkm-prover",
  "zkm-stark",
 ]
@@ -10773,7 +10742,7 @@ dependencies = [
 [[package]]
 name = "zkm-stark"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "arrayref",
  "hashbrown 0.14.5",
@@ -10808,30 +10777,14 @@ dependencies = [
  "tracing-forest",
  "tracing-subscriber 0.3.20",
  "zkm-derive",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
- "zkm-zkvm 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
+ "zkm-primitives",
+ "zkm-zkvm",
 ]
 
 [[package]]
 name = "zkm-zkvm"
 version = "1.2.1"
-source = "git+https://github.com/felicityin/Ziren?branch=gpu-sdk#4c5f4ab3a647a47852b24a188d28ec394932def9"
-dependencies = [
- "bincode",
- "cfg-if",
- "getrandom 0.2.16",
- "lazy_static",
- "rand 0.8.5",
- "serde",
- "sha2 0.10.9",
- "zkm-lib 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
- "zkm-primitives 1.2.1 (git+https://github.com/felicityin/Ziren?branch=gpu-sdk)",
-]
-
-[[package]]
-name = "zkm-zkvm"
-version = "1.2.1"
-source = "git+https://github.com/ProjectZKM/Ziren#95284cc52c5234fcbc0e7fdd25c2b99fd5a30465"
+source = "git+https://github.com/ProjectZKM/Ziren#65824a3580a641a4bdb12b0ed7650e5dd2470d14"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -10841,8 +10794,8 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "sha2 0.10.9",
- "zkm-lib 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
- "zkm-primitives 1.2.1 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-lib",
+ "zkm-primitives",
 ]
 
 [[package]]
