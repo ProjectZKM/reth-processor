@@ -48,7 +48,6 @@ reth-execution-types.workspace = true
 reth-errors.workspace = true
 reth-chainspec.workspace = true
 reth-stateless.workspace = true
-reth-trie-zkvm.workspace = true
 
 # revm
 revm-bytecode.workspace = true

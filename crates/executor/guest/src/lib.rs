@@ -17,10 +17,10 @@ use executor::{EthClientExecutor, DESERIALZE_INPUTS};
 use io::EthClientExecutorInput;
 use std::sync::Arc;
 
-pub fn verify_block(input: &Vec<u8>) -> (B256, B256, B256) {
-    println!("cycle-tracker-report-start: {}", DESERIALZE_INPUTS);
+pub fn verify_block(input: &[u8]) -> (B256, B256, B256) {
+    println!("cycle-tracker-report-start: {DESERIALZE_INPUTS}");
     let input = bincode::deserialize::<EthClientExecutorInput>(input).unwrap();
-    println!("cycle-tracker-report-end: {}", DESERIALZE_INPUTS);
+    println!("cycle-tracker-report-end: {DESERIALZE_INPUTS}");
 
     // Execute the block.
     let executor = EthClientExecutor::eth(

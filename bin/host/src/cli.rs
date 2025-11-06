@@ -57,7 +57,7 @@ impl HostArgs {
         let (rpc_url, chain_id) = match (self.provider.rpc_url.clone(), self.provider.chain_id) {
             (Some(rpc_url), Some(chain_id)) => (Some(rpc_url), chain_id),
             (None, Some(chain_id)) => {
-                match std::env::var(format!("RPC_{}", chain_id)) {
+                match std::env::var(format!("RPC_{chain_id}")) {
                     Ok(rpc_env_var) => {
                         // We don't always need it but if the value exists it has to be valid.
                         (Some(Url::parse(rpc_env_var.as_str())?), chain_id)
@@ -79,7 +79,7 @@ impl HostArgs {
             }
         };
         let debug_rpc_url = self.provider.debug_rpc_url.clone().or_else(|| {
-            std::env::var(format!("DEBUG_RPC_{}", chain_id))
+            std::env::var(format!("DEBUG_RPC_{chain_id}"))
                 .ok()
                 .and_then(|url| Url::parse(&url).ok())
         });
