@@ -31,7 +31,9 @@ pub struct ExecutionWitnessRpcDb<P, N> {
 impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
     /// Create a new [`ExecutionWitnessRpcDb`].
     pub async fn new(provider: P, block_number: u64, state_root: B256) -> Result<Self, RpcDbError> {
+        tracing::info!("Fetching execution witness for block {}", block_number);
         let execution_witness = provider.debug_execution_witness(block_number.into()).await?;
+        tracing::info!("Fetched execution witness for block done {}", block_number);
 
         let state = EthereumState::from_execution_witness(&execution_witness, state_root);
 
