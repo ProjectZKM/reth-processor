@@ -109,7 +109,7 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
             .state
             .storage_tries
             .get(&hashed_address)
-            .and_then(|storage_trie| storage_trie.get(hashed_slot.as_slice()).unwrap())
+            .and_then(|storage_trie| storage_trie.get(hashed_slot.as_slice()).ok()?)
         {
             Ok(U256::decode(&mut value)?)
         } else {
