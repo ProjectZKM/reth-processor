@@ -184,7 +184,7 @@ impl<C: ConfigureEvm> HostExecutor<C> {
             })
         });
 
-        let after_tasks = state_requests.iter().map(|(address, _)| {
+        let after_tasks = state_requests.keys().map(|address| {
             let permit = semaphore.clone().acquire_owned();
             let provider = provider.clone();
             let address = *address;

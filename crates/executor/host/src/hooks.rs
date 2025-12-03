@@ -24,6 +24,7 @@ pub trait ExecutionHooks: Send {
         async { Ok(()) }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn on_proving_end(
         &self,
         _block_number: u64,
