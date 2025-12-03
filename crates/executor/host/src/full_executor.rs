@@ -95,13 +95,7 @@ pub trait BlockExecutor<C: ExecutorComponents> {
             hooks.on_proving_start(client_input.current_block.number).await?;
             let client = self.client();
             let pk = self.pk();
-
-            let elf_id = if ELF_ID.get().is_none() {
-                ELF_ID.set(hex::encode(Sha256::digest(&pk.elf))).unwrap();
-                None
-            } else {
-                Some(ELF_ID.get().unwrap().clone())
-            };
+            let elf_id = Some(ELF_ID.get().unwrap().clone());
             info!("elf id: {:?}", elf_id);
 
             let proof_with_cycles = task::spawn_blocking(move || {
@@ -232,6 +226,8 @@ where
             (pk, vk)
         })
         .await?;
+
+        ELF_ID.set(hex::encode(Sha256::digest(&pk.elf))).unwrap();
 
         Ok(Self {
             provider,
