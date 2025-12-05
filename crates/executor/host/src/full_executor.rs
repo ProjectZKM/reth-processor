@@ -232,6 +232,22 @@ where
         })
         .await?;
 
+        // store vk in the file
+        let vk_bytes = bincode::serialize(&vk)?;
+        let path = "vk.bin";
+
+        if let Ok(old_bytes) = std::fs::read(path) {
+            if old_bytes != vk_bytes {
+                std::fs::write(path, &vk_bytes)?;
+                info!("{path} updated");
+            } else {
+                info!("{path} unchanged");
+            }
+        } else {
+            std::fs::write(path, &vk_bytes)?;
+            info!("{path} created");
+        }
+
         Ok(Self {
             provider,
             debug_provider,
