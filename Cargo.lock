@@ -6043,6 +6043,7 @@ dependencies = [
 name = "primitives"
 version = "0.1.0"
 dependencies = [
+ "alloy-eips",
  "alloy-genesis",
  "alloy-rpc-types",
  "eyre",

@@ -19,6 +19,7 @@ reth-trie.workspace = true
 # alloy
 alloy-genesis.workspace = true
 alloy-rpc-types.workspace = true
+alloy-eips.workspace = true
 
 [features]
 optimism = ["dep:reth-optimism-chainspec", "dep:reth-optimism-forks"]
