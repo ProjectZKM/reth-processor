@@ -38,3 +38,6 @@ reth-primitives-traits.workspace = true
 
 [build-dependencies]
 zkm-build.workspace = true
+
+[features]
+execution-witness = ["host-executor/execution-witness"]

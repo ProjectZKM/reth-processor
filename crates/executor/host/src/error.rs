@@ -3,6 +3,7 @@ use alloy_transport::{RpcError, TransportError, TransportErrorKind};
 use mpt::FromProofError;
 use reth_errors::BlockExecutionError;
 use revm_primitives::B256;
+use rpc_db::RpcDbError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -26,11 +27,14 @@ pub enum Error {
     StateRootMismatch(B256, B256),
     #[error("Failed to read the genesis file: {}", .0)]
     FailedToReadGenesisFile(#[from] std::io::Error),
+    #[error("RPC error: {}", 0)]
+    RpcDbError(#[from] RpcDbError),
     #[error("custom error: {0}")]
     Custom(String),
 }
 
 #[derive(Debug, thiserror::Error)]
+#[allow(dead_code)]
 pub(crate) enum SpawnedTaskError {
     #[error("rpc error: {0}")]
     Rpc(#[from] RpcError<TransportErrorKind>),

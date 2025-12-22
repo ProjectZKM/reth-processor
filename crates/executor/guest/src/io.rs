@@ -7,7 +7,7 @@ use mpt::EthereumState;
 use primitives::genesis::Genesis;
 use reth_errors::ProviderError;
 use reth_ethereum_primitives::EthPrimitives;
-use reth_primitives_traits::NodePrimitives;
+use reth_primitives_traits::{NodePrimitives, SealedHeader};
 use reth_trie::{TrieAccount, EMPTY_ROOT_HASH};
 use revm::{
     state::{AccountInfo, Bytecode},
@@ -43,8 +43,6 @@ pub struct ClientExecutorInput<P: NodePrimitives> {
     pub ancestor_headers: Vec<Header>,
     /// Network state as of the parent block.
     pub parent_state: EthereumState,
-    /// Requests to account state and storage slots.
-    pub state_requests: HashMap<Address, Vec<U256>>,
     /// Account bytecodes.
     pub bytecodes: Vec<Bytecode>,
     /// The genesis block, as a json string.
@@ -63,8 +61,8 @@ impl<P: NodePrimitives> ClientExecutorInput<P> {
     }
 
     /// Creates a [`WitnessDb`].
-    pub fn witness_db(&self) -> Result<TrieDB<'_>, ClientError> {
-        <Self as WitnessInput>::witness_db(self)
+    pub fn witness_db(&self, sealed_headers: &[SealedHeader]) -> Result<TrieDB<'_>, ClientError> {
+        <Self as WitnessInput>::witness_db(self, sealed_headers)
     }
 }
 
@@ -80,18 +78,28 @@ impl<P: NodePrimitives> WitnessInput for ClientExecutorInput<P> {
     }
 
     #[inline(always)]
-    fn state_requests(&self) -> impl Iterator<Item = (&Address, &Vec<U256>)> {
-        self.state_requests.iter()
-    }
-
-    #[inline(always)]
     fn bytecodes(&self) -> impl Iterator<Item = &Bytecode> {
         self.bytecodes.iter()
     }
 
     #[inline(always)]
-    fn headers(&self) -> impl Iterator<Item = &Header> {
-        once(&self.current_block.header).chain(self.ancestor_headers.iter())
+    fn sealed_headers(&self) -> impl Iterator<Item = SealedHeader> {
+        once(SealedHeader::seal_slow(self.current_block.header.clone()))
+            .chain(self.ancestor_headers.iter().map(|h| SealedHeader::seal_slow(h.clone())))
+    }
+}
+
+// The headed committed at the end of execution
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CommittedHeader {
+    #[serde_as(as = "alloy_consensus::serde_bincode_compat::Header")]
+    pub header: Header,
+}
+
+impl From<Header> for CommittedHeader {
+    fn from(header: Header) -> Self {
+        CommittedHeader { header }
     }
 }
 
@@ -173,17 +181,12 @@ pub trait WitnessInput {
     /// [state()](trait.WitnessInput#tymethod.state) must conform to.
     fn state_anchor(&self) -> B256;
 
-    /// Gets an iterator over address state requests. For each request, the account info and storage
-    /// slots are loaded from the relevant tries in the state returned by
-    /// [state()](trait.WitnessInput#tymethod.state).
-    fn state_requests(&self) -> impl Iterator<Item = (&Address, &Vec<U256>)>;
-
     /// Gets an iterator over account bytecodes.
     fn bytecodes(&self) -> impl Iterator<Item = &Bytecode>;
 
     /// Gets an iterator over references to a consecutive, reverse-chronological block headers
     /// starting from the current block header.
-    fn headers(&self) -> impl Iterator<Item = &Header>;
+    fn sealed_headers(&self) -> impl Iterator<Item = SealedHeader>;
 
     /// Creates a [`WitnessDb`] from a [`WitnessInput`] implementation. To do so, it verifies the
     /// state root, ancestor headers and account bytecodes, and constructs the account and
@@ -193,7 +196,7 @@ pub trait WitnessInput {
     /// implementing this trait causes a zkVM run to cost over 5M cycles more. To avoid this, define
     /// a method inside the type that calls this trait method instead.
     #[inline(always)]
-    fn witness_db(&self) -> Result<TrieDB<'_>, ClientError> {
+    fn witness_db(&self, sealed_headers: &[SealedHeader]) -> Result<TrieDB<'_>, ClientError> {
         let state = self.state();
 
         if self.state_anchor() != state.state_root() {
@@ -214,7 +217,7 @@ pub trait WitnessInput {
 
         // Verify and build block hashes
         let mut block_hashes: HashMap<u64, B256> = HashMap::with_hasher(Default::default());
-        for (child_header, parent_header) in self.headers().tuple_windows() {
+        for (child_header, parent_header) in sealed_headers.iter().tuple_windows() {
             if parent_header.number() != child_header.number() - 1 {
                 return Err(ClientError::InvalidHeaderBlockNumber(
                     parent_header.number() + 1,
@@ -222,7 +225,7 @@ pub trait WitnessInput {
                 ));
             }
 
-            let parent_header_hash = parent_header.hash_slow();
+            let parent_header_hash = parent_header.hash();
             if parent_header_hash != child_header.parent_hash() {
                 return Err(ClientError::InvalidHeaderParentHash(
                     parent_header_hash,

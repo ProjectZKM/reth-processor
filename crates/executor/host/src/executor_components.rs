@@ -1,15 +1,16 @@
 use std::marker::PhantomData;
 
-use alloy_evm::EthEvmFactory;
 use alloy_network::Ethereum;
 use alloy_provider::Network;
-use guest_executor::{
-    custom::CustomEvmFactory, IntoInput, IntoPrimitives, ValidateBlockPostExecution,
-};
+use eyre::Ok;
+use guest_executor::{custom::CustomEvmFactory, BlockValidator, IntoInput, IntoPrimitives};
 use op_alloy_network::Optimism;
+use primitives::genesis::Genesis;
+use reth_chainspec::ChainSpec;
 use reth_ethereum_primitives::EthPrimitives;
 use reth_evm::ConfigureEvm;
 use reth_evm_ethereum::EthEvmConfig;
+use reth_optimism_chainspec::OpChainSpec;
 use reth_optimism_evm::OpEvmConfig;
 use reth_optimism_primitives::OpPrimitives;
 use reth_primitives_traits::NodePrimitives;
@@ -28,11 +29,15 @@ pub trait ExecutorComponents {
         + DeserializeOwned
         + IntoPrimitives<Self::Network>
         + IntoInput
-        + ValidateBlockPostExecution;
+        + BlockValidator<Self::ChainSpec>;
 
     type EvmConfig: ConfigureEvm<Primitives = Self::Primitives>;
 
+    type ChainSpec;
+
     type Hooks: ExecutionHooks;
+
+    fn try_into_chain_spec(genesis: &Genesis) -> eyre::Result<Self::ChainSpec>;
 }
 
 #[derive(Debug, Default)]
@@ -51,9 +56,16 @@ where
 
     type Primitives = EthPrimitives;
 
-    type EvmConfig = EthEvmConfig<CustomEvmFactory<EthEvmFactory>>;
+    type EvmConfig = EthEvmConfig<ChainSpec, CustomEvmFactory>;
+
+    type ChainSpec = ChainSpec;
 
     type Hooks = H;
+
+    fn try_into_chain_spec(genesis: &Genesis) -> eyre::Result<ChainSpec> {
+        let spec = genesis.try_into()?;
+        Ok(spec)
+    }
 }
 
 #[derive(Debug, Default)]
@@ -74,5 +86,12 @@ where
 
     type EvmConfig = OpEvmConfig;
 
+    type ChainSpec = OpChainSpec;
+
     type Hooks = H;
+
+    fn try_into_chain_spec(genesis: &Genesis) -> eyre::Result<OpChainSpec> {
+        let spec = genesis.try_into()?;
+        Ok(spec)
+    }
 }
