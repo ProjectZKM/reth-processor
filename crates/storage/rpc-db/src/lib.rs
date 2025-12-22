@@ -217,7 +217,7 @@ impl<P: Provider<N> + Clone, N: Network> RpcDb<P, N> {
         info!("Preloading accounts and storage for block: {}", self.block);
         let current_block = self.block.as_u64().unwrap() + 1;
         let params = (
-            format!("0x{:x}", current_block),
+            format!("0x{current_block:x}"),
             serde_json::json!({
                 "disableStorage": false,
                 "disableMemory": true,
