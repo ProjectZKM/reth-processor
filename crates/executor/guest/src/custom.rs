@@ -95,6 +95,7 @@ impl EvmFactory for CustomEvmFactory {
                 (u64_to_address(15), "bls-pairing"),
                 (u64_to_address(16), "bls-map-fp-to-g1"),
                 (u64_to_address(17), "bls-map-fp2-to-g2"),
+                (u64_to_address(256), "p256-verify"),
             ]);
 
             let name = addresses_to_names.get(address).cloned().unwrap_or("unknown");
