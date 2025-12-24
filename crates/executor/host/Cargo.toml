@@ -26,7 +26,7 @@ hex = "0.4.3"
 # workspace
 rpc-db.workspace = true
 guest-executor = { workspace = true, features = ["optimism"] }
-mpt = { workspace = true, features = ["preimage_context"] }
+mpt = { workspace = true }
 primitives = { workspace = true, features = ["optimism"] }
 
 # Ziren
@@ -79,3 +79,7 @@ dotenv = "0.15.0"
 
 [features]
 alerting = ["dep:reqwest"]
+execution-witness = [
+    "mpt/execution-witness",
+    "rpc-db/execution-witness",
+]

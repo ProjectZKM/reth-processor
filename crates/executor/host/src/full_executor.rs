@@ -12,7 +12,6 @@ use eyre::bail;
 use guest_executor::io::ClientExecutorInput;
 use reth_primitives_traits::NodePrimitives;
 use revm_primitives::B256;
-use rpc_db::RpcDb;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use tokio::{task, time::sleep};
@@ -38,7 +37,7 @@ pub async fn build_executor<C, P>(
 ) -> eyre::Result<EitherExecutor<C, P>>
 where
     C: ExecutorComponents,
-    P: Provider<C::Network> + Clone,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
 {
     if let Some(provider) = provider {
         let debug_provider = debug_provider.unwrap_or(provider.clone());
@@ -158,7 +157,7 @@ pub trait BlockExecutor<C: ExecutorComponents> {
 impl<C, P> BlockExecutor<C> for EitherExecutor<C, P>
 where
     C: ExecutorComponents,
-    P: Provider<C::Network> + Clone + 'static,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
 {
     async fn execute(&self, block_number: u64) -> eyre::Result<()> {
         match self {
@@ -192,11 +191,11 @@ where
 pub struct FullExecutor<C, P>
 where
     C: ExecutorComponents,
-    P: Provider<C::Network> + Clone,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
 {
     provider: P,
     debug_provider: P,
-    host_executor: HostExecutor<C::EvmConfig>,
+    host_executor: HostExecutor<C::EvmConfig, C::ChainSpec>,
     client: Arc<C::Prover>,
     pk: Arc<ZKMProvingKey>,
     vk: Arc<ZKMVerifyingKey>,
@@ -207,7 +206,7 @@ where
 impl<C, P> FullExecutor<C, P>
 where
     C: ExecutorComponents,
-    P: Provider<C::Network> + Clone,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
 {
     pub async fn try_new(
         provider: P,
@@ -232,7 +231,10 @@ where
         Ok(Self {
             provider,
             debug_provider,
-            host_executor: HostExecutor::new(evm_config),
+            host_executor: HostExecutor::new(
+                evm_config,
+                Arc::new(C::try_into_chain_spec(&config.genesis)?),
+            ),
             client,
             pk: Arc::new(pk),
             vk: Arc::new(vk),
@@ -254,7 +256,7 @@ where
 impl<C, P> BlockExecutor<C> for FullExecutor<C, P>
 where
     C: ExecutorComponents,
-    P: Provider<C::Network> + Clone + 'static,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
 {
     async fn execute(&self, block_number: u64) -> eyre::Result<()> {
         self.hooks.on_execution_start(block_number).await?;
@@ -281,19 +283,13 @@ where
                 client_input_from_cache
             }
             None => {
-                let rpc_db = RpcDb::new(
-                    self.provider.clone(),
-                    self.debug_provider.clone(),
-                    block_number - 1,
-                );
-
                 // Execute the host.
                 let client_input = self
                     .host_executor
                     .execute(
                         block_number,
-                        &rpc_db,
                         &self.provider,
+                        &self.debug_provider,
                         self.config.genesis.clone(),
                         self.config.custom_beneficiary,
                         self.config.opcode_tracking,
@@ -338,7 +334,7 @@ where
 impl<C, P> Debug for FullExecutor<C, P>
 where
     C: ExecutorComponents,
-    P: Provider<C::Network> + Clone,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FullExecutor").field("config", &self.config).finish()

@@ -21,6 +21,7 @@ primitives.workspace = true
 
 # reth
 reth-consensus.workspace = true
+reth-consensus-common.workspace = true
 reth-ethereum-consensus.workspace = true
 reth-ethereum-primitives = { workspace = true, features = ["serde-bincode-compat"] }
 reth-execution-types.workspace = true
@@ -38,6 +39,7 @@ reth-chainspec.workspace = true
 # revm
 revm.workspace = true
 revm-primitives.workspace = true
+kzg-rs.workspace = true
 
 # alloy
 alloy-evm.workspace = true

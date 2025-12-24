@@ -6,8 +6,8 @@ use std::{
 use alloy_consensus::{Block, BlockHeader};
 use csv::{Writer, WriterBuilder};
 use guest_executor::executor::{
-    ACCRUE_LOG_BLOOM, BLOCK_EXECUTION, COMPUTE_STATE_ROOT, DESERIALZE_INPUTS, INIT_WITNESS_DB,
-    RECOVER_SENDERS, VALIDATE_EXECUTION,
+    BLOCK_EXECUTION, COMPUTE_STATE_ROOT, DESERIALZE_INPUTS, INIT_WITNESS_DB, RECOVER_SENDERS,
+    VALIDATE_EXECUTION,
 };
 use reth_primitives_traits::{BlockBody, NodePrimitives};
 use revm_bytecode::opcode::OPCODE_INFO;
@@ -32,6 +32,7 @@ const PRECOMPILES: [&str; 10] = [
 ];
 
 #[derive(Serialize, Deserialize)]
+#[allow(dead_code)]
 struct ExecutionReportData {
     chain_id: u64,
     block_number: u64,
@@ -153,9 +154,6 @@ impl PersistExecutionReport {
             );
             record.push(
                 execution_report.cycle_tracker.get(VALIDATE_EXECUTION).unwrap_or(&0).to_string(),
-            );
-            record.push(
-                execution_report.cycle_tracker.get(ACCRUE_LOG_BLOOM).unwrap_or(&0).to_string(),
             );
             record.push(
                 execution_report.cycle_tracker.get(COMPUTE_STATE_ROOT).unwrap_or(&0).to_string(),

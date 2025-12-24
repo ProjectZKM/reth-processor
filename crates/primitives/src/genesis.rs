@@ -1,5 +1,11 @@
+use alloy_eips::{eip7840::BlobParams, BlobScheduleBlobParams};
 use eyre::eyre;
-use reth_chainspec::{BaseFeeParams, BaseFeeParamsKind, Chain, ChainSpec, EthereumHardfork};
+use reth_chainspec::{
+    mainnet::{MAINNET_BPO1_TIMESTAMP, MAINNET_BPO2_TIMESTAMP},
+    sepolia::{SEPOLIA_BPO1_TIMESTAMP, SEPOLIA_BPO2_TIMESTAMP},
+    BaseFeeParams, BaseFeeParamsKind, Chain, ChainSpec, EthereumHardfork,
+    MAINNET_PRUNE_DELETE_LIMIT,
+};
 use serde::{Deserialize, Serialize};
 
 pub const LINEA_GENESIS_JSON: &str = include_str!("./genesis/59144.json");
@@ -70,8 +76,11 @@ impl TryFrom<&Genesis> for ChainSpec {
                     hardforks: EthereumHardfork::mainnet().into(),
                     deposit_contract: Default::default(),
                     base_fee_params: BaseFeeParamsKind::Constant(BaseFeeParams::ethereum()),
-                    prune_delete_limit: 20000,
-                    blob_params: Default::default(),
+                    prune_delete_limit: MAINNET_PRUNE_DELETE_LIMIT,
+                    blob_params: BlobScheduleBlobParams::default().with_scheduled([
+                        (MAINNET_BPO1_TIMESTAMP, BlobParams::bpo1()),
+                        (MAINNET_BPO2_TIMESTAMP, BlobParams::bpo2()),
+                    ]),
                 };
 
                 Ok(mainnet)
@@ -86,7 +95,10 @@ impl TryFrom<&Genesis> for ChainSpec {
                     deposit_contract: Default::default(),
                     base_fee_params: BaseFeeParamsKind::Constant(BaseFeeParams::ethereum()),
                     prune_delete_limit: 10000,
-                    blob_params: Default::default(),
+                    blob_params: BlobScheduleBlobParams::default().with_scheduled([
+                        (SEPOLIA_BPO1_TIMESTAMP, BlobParams::bpo1()),
+                        (SEPOLIA_BPO2_TIMESTAMP, BlobParams::bpo2()),
+                    ]),
                 };
                 Ok(sepolia)
             }
