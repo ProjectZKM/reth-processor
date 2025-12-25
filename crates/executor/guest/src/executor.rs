@@ -18,53 +18,57 @@ use revm::DatabaseRef;
 use revm_primitives::{Address, HashMap, U256};
 
 use crate::{
-    custom::CustomEvmFactory,
+    custom::{CustomCrypto, CustomEvmFactory},
     error::ClientError,
     into_primitives::FromInput,
     io::{ClientExecutorInput, TrieDB, WitnessInput},
     tracking::OpCodesTrackingBlockExecutor,
-    ValidateBlockPostExecution,
+    BlockValidator,
 };
 
 pub const DESERIALZE_INPUTS: &str = "deserialize inputs";
 pub const INIT_WITNESS_DB: &str = "initialize witness db";
 pub const RECOVER_SENDERS: &str = "recover senders";
 pub const BLOCK_EXECUTION: &str = "block execution";
+pub const VALIDATE_HEADER: &str = "validate header";
 pub const VALIDATE_EXECUTION: &str = "validate block post-execution";
-pub const ACCRUE_LOG_BLOOM: &str = "accrue logs bloom";
 pub const COMPUTE_STATE_ROOT: &str = "compute state root";
 pub const CHECK_SLOT_AND_VALUE: &str = "check slot and value";
 
-pub type EthClientExecutor = ClientExecutor<EthEvmConfig<CustomEvmFactory<EthEvmFactory>>>;
+pub type EthClientExecutor = ClientExecutor<EthEvmConfig<ChainSpec, CustomEvmFactory>, ChainSpec>;
 
 #[cfg(feature = "optimism")]
-pub type OpClientExecutor = ClientExecutor<reth_optimism_evm::OpEvmConfig>;
+pub type OpClientExecutor =
+    ClientExecutor<reth_optimism_evm::OpEvmConfig, reth_optimism_chainspec::OpChainSpec>;
 
 /// An executor that executes a block inside a zkVM.
 #[derive(Debug, Clone)]
-pub struct ClientExecutor<C: ConfigureEvm> {
+pub struct ClientExecutor<C: ConfigureEvm, CS> {
     evm_config: C,
+    chain_spec: Arc<CS>,
 }
 
-impl<C> ClientExecutor<C>
+impl<C, CS> ClientExecutor<C, CS>
 where
     C: ConfigureEvm,
-    C::Primitives: FromInput + ValidateBlockPostExecution,
+    C::Primitives: FromInput + BlockValidator<CS>,
 {
     pub fn execute(
         &self,
         mut input: ClientExecutorInput<C::Primitives>,
         storage_info: Option<Vec<(Address, U256, U256)>>,
     ) -> Result<(Header, B256), ClientError> {
+        let chain_id: u64 = (&input.genesis).try_into().expect("convert chain id err");
+
+        let sealed_headers = input.sealed_headers().collect::<Vec<_>>();
+
         // Initialize the witnessed database with verified storage proofs.
         let db = profile_report!(INIT_WITNESS_DB, {
-            let trie_db = input.witness_db().unwrap();
+            let trie_db = input.witness_db(&sealed_headers).unwrap();
             WrapDatabaseRef(trie_db)
         });
 
-        let chain_id: u64 = (&input.genesis).try_into().expect("convert chain id err");
-
-        let block_executor =
+        let block_executor: BlockExecutor<'_, C> =
             BlockExecutor::new(self.evm_config.clone(), db, input.opcode_tracking, chain_id);
 
         let block = profile_report!(RECOVER_SENDERS, {
@@ -73,21 +77,35 @@ where
                 .map_err(|_| ClientError::SignatureRecoveryFailed)
         })?;
 
+        // Validate the blocks.
+        profile_report!(VALIDATE_HEADER, {
+            C::Primitives::validate_block(&block, self.chain_spec.clone())
+                .expect("The block is invalid");
+
+            for (header, parent) in sealed_headers.iter().tuple_windows() {
+                C::Primitives::validate_header(parent, self.chain_spec.clone())
+                    .expect("A parent header is invalid");
+
+                C::Primitives::validate_header_against_parent(
+                    header,
+                    parent,
+                    self.chain_spec.clone(),
+                )
+                .expect("The header is invalid against its parent");
+            }
+        });
+
         let execution_output =
             profile_report!(BLOCK_EXECUTION, { block_executor.execute(&block) })?;
 
         // Validate the block post execution.
         profile_report!(VALIDATE_EXECUTION, {
-            C::Primitives::validate_block_post_execution(&block, &input.genesis, &execution_output)
+            C::Primitives::validate_block_post_execution(
+                &block,
+                self.chain_spec.clone(),
+                &execution_output,
+            )
         })?;
-
-        // Accumulate the logs bloom.
-        let mut logs_bloom = Bloom::default();
-        profile_report!(ACCRUE_LOG_BLOOM, {
-            execution_output.result.receipts.iter().for_each(|r| {
-                logs_bloom.accrue_bloom(&r.bloom());
-            })
-        });
 
         // Convert the output to an execution outcome.
         let executor_outcome = ExecutionOutcome::new(
@@ -118,7 +136,7 @@ where
             state_root,
             transactions_root: input.current_block.header().transactions_root(),
             receipts_root: input.current_block.header().receipts_root(),
-            logs_bloom,
+            logs_bloom: input.current_block.logs_bloom,
             difficulty: input.current_block.header().difficulty(),
             number: input.current_block.header().number(),
             gas_limit: input.current_block.header().gas_limit(),
@@ -199,11 +217,14 @@ where
 
 impl EthClientExecutor {
     pub fn eth(chain_spec: Arc<ChainSpec>, custom_beneficiary: Option<Address>) -> Self {
+        install_crypto(CustomCrypto::default());
+
         Self {
             evm_config: EthEvmConfig::new_with_evm_factory(
-                chain_spec,
-                CustomEvmFactory::<EthEvmFactory>::new(custom_beneficiary),
+                chain_spec.clone(),
+                CustomEvmFactory::new(custom_beneficiary),
             ),
+            chain_spec,
         }
     }
 }
@@ -211,7 +232,12 @@ impl EthClientExecutor {
 #[cfg(feature = "optimism")]
 impl OpClientExecutor {
     pub fn optimism(chain_spec: Arc<reth_optimism_chainspec::OpChainSpec>) -> Self {
-        Self { evm_config: reth_optimism_evm::OpEvmConfig::optimism(chain_spec) }
+        install_crypto(CustomCrypto::default());
+
+        Self {
+            evm_config: reth_optimism_evm::OpEvmConfig::optimism(chain_spec.clone()),
+            chain_spec,
+        }
     }
 }
 

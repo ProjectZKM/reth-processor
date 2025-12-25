@@ -23,12 +23,12 @@ use alloc::boxed::Box;
 use alloy_primitives::{b256, map::HashMap, B256};
 use alloy_rlp::Encodable;
 use core::{
-    cell::RefCell,
     cmp,
     fmt::{Debug, Write},
     iter, mem,
 };
-use reth_trie::AccountProof;
+use reth_trie::{AccountProof, Nibbles};
+use std::sync::Mutex;
 
 use rlp::{Decodable, DecoderError, Prototype, Rlp};
 use serde::{Deserialize, Serialize};
@@ -91,14 +91,43 @@ pub fn keccak(data: impl AsRef<[u8]>) -> [u8; 32] {
 /// optimizing storage. However, operations targeting a truncated part will fail and
 /// return an error. Another distinction of this implementation is that branches cannot
 /// store values, aligning with the construction of MPTs in Ethereum.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct MptNode {
     /// The type and data of the node.
     data: MptNodeData,
     /// Cache for a previously computed reference of this node. This is skipped during
     /// serialization.
     #[serde(skip)]
-    cached_reference: RefCell<Option<MptNodeReference>>,
+    cached_reference: Mutex<Option<MptNodeReference>>,
+}
+
+impl Ord for MptNode {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.data.cmp(&other.data)
+    }
+}
+
+impl PartialOrd for MptNode {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for MptNode {}
+
+impl PartialEq for MptNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
+}
+
+impl Clone for MptNode {
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            cached_reference: Mutex::new(self.cached_reference.lock().unwrap().clone()),
+        }
+    }
 }
 
 /// Represents custom error types for the sparse Merkle Patricia Trie (MPT).
@@ -131,7 +160,7 @@ pub enum Error {
 /// Each node in the trie can be of one of several types, each with its own specific data
 /// structure. This enum provides a clear and type-safe way to represent the data
 /// associated with each node type.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum MptNodeData {
     /// Represents an empty trie node.
     #[default]
@@ -154,7 +183,7 @@ pub enum MptNodeData {
 /// Nodes in the MPT can reference other nodes either directly through their byte
 /// representation or indirectly through a hash of their encoding. This enum provides a
 /// clear and type-safe way to represent these references.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum MptNodeReference {
     /// Represents a direct reference to another node using its byte encoding. Typically
     /// used for short encodings that are less than 32 bytes in length.
@@ -171,7 +200,62 @@ pub enum MptNodeReference {
 /// `cached_reference` field to `None`.
 impl From<MptNodeData> for MptNode {
     fn from(value: MptNodeData) -> Self {
-        Self { data: value, cached_reference: RefCell::new(None) }
+        Self { data: value, cached_reference: Mutex::new(None) }
+    }
+}
+
+impl core::fmt::Debug for MptNodeReference {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            MptNodeReference::Bytes(b) => {
+                write!(f, "Ref::Bytes({})", alloy_primitives::hex::encode(b))
+            }
+            MptNodeReference::Digest(h) => {
+                write!(f, "Ref::Digest({})", alloy_primitives::hex::encode(h.as_slice()))
+            }
+        }
+    }
+}
+
+impl core::fmt::Debug for MptNodeData {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            MptNodeData::Null => write!(f, "Null"),
+            MptNodeData::Leaf(k, v) => write!(
+                f,
+                "Leaf(key={}, value={})",
+                alloy_primitives::hex::encode(k),
+                alloy_primitives::hex::encode(v)
+            ),
+            MptNodeData::Extension(k, child) => f
+                .debug_struct("Extension")
+                .field("key", &alloy_primitives::hex::encode(k))
+                .field("child", child)
+                .finish(),
+            MptNodeData::Digest(h) => write!(f, "Digest({})", alloy_primitives::hex::encode(h)),
+            MptNodeData::Branch(children) => {
+                let mut ds = f.debug_struct("Branch");
+                for (i, child) in children.iter().enumerate() {
+                    if let Some(c) = child {
+                        ds.field(&format!("child_{i}"), c);
+                    }
+                }
+                ds.finish()
+            }
+        }
+    }
+}
+
+impl core::fmt::Debug for MptNode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut ds = f.debug_struct("MptNode");
+        ds.field("data", &self.data);
+        if let Ok(guard) = self.cached_reference.lock() {
+            if let Some(reference) = guard.as_ref() {
+                ds.field("cached_reference", reference);
+            }
+        }
+        ds.finish()
     }
 }
 
@@ -287,6 +371,12 @@ impl Decodable for MptNode {
 /// and retrieving values, as well as utility methods for encoding, decoding, and
 /// debugging.
 impl MptNode {
+    /// Creates a Merkle Patricia trie from an EIP-1186 proof.
+    pub fn from_account_proof(account_proof: &[impl AsRef<[u8]>]) -> Result<Self, FromProofError> {
+        let nodes = parse_proof(account_proof)?;
+        mpt_from_proof(&nodes)
+    }
+
     /// Clears the trie, replacing its data with an empty node, [MptNodeData::Null].
     ///
     /// This method effectively removes all key-value pairs from the trie.
@@ -320,7 +410,36 @@ impl MptNode {
     /// storage or transmission purposes.
     #[inline]
     pub fn reference(&self) -> MptNodeReference {
-        self.cached_reference.borrow_mut().get_or_insert_with(|| self.calc_reference()).clone()
+        self.cached_reference.lock().unwrap().get_or_insert_with(|| self.calc_reference()).clone()
+    }
+
+    pub fn for_each_leaves<F: FnMut(&[u8], &[u8])>(&self, mut f: F) {
+        let mut stack = vec![(self, Nibbles::default())];
+
+        while let Some((node, path)) = stack.pop() {
+            match node.as_data() {
+                MptNodeData::Null | MptNodeData::Digest(_) => (),
+                MptNodeData::Branch(branch) => {
+                    for (i, n) in
+                        branch.iter().enumerate().filter_map(|(i, n)| n.as_ref().map(|n| (i, n)))
+                    {
+                        let mut new_path = path;
+                        new_path.push(i as u8);
+                        stack.push((n, new_path));
+                    }
+                }
+                MptNodeData::Leaf(prefix, value) => {
+                    let mut full_path = path;
+                    full_path.extend(&Nibbles::from_nibbles(prefix_nibs(prefix)));
+                    f(&full_path.pack(), value)
+                }
+                MptNodeData::Extension(prefix, node) => {
+                    let mut new_path = path;
+                    new_path.extend(&Nibbles::from_nibbles(prefix_nibs(prefix)));
+                    stack.push((node, new_path));
+                }
+            }
+        }
     }
 
     /// Computes and returns the 256-bit hash of the node.
@@ -330,12 +449,8 @@ impl MptNode {
     pub fn hash(&self) -> B256 {
         match self.data {
             MptNodeData::Null => EMPTY_ROOT,
-            _ => match self
-                .cached_reference
-                .borrow_mut()
-                .get_or_insert_with(|| self.calc_reference())
-            {
-                MptNodeReference::Digest(digest) => *digest,
+            _ => match self.reference() {
+                MptNodeReference::Digest(digest) => digest,
                 MptNodeReference::Bytes(bytes) => keccak(bytes).into(),
             },
         }
@@ -343,9 +458,9 @@ impl MptNode {
 
     /// Encodes the [MptNodeReference] of this node into the `out` buffer.
     fn reference_encode(&self, out: &mut dyn alloy_rlp::BufMut) {
-        match self.cached_reference.borrow_mut().get_or_insert_with(|| self.calc_reference()) {
+        match self.reference() {
             // if the reference is an RLP-encoded byte slice, copy it directly
-            MptNodeReference::Bytes(bytes) => out.put_slice(bytes),
+            MptNodeReference::Bytes(bytes) => out.put_slice(&bytes),
             // if the reference is a digest, RLP-encode it with its fixed known length
             MptNodeReference::Digest(digest) => {
                 out.put_u8(alloy_rlp::EMPTY_STRING_CODE + 32);
@@ -356,7 +471,7 @@ impl MptNode {
 
     /// Returns the length of the encoded [MptNodeReference] of this node.
     fn reference_length(&self) -> usize {
-        match self.cached_reference.borrow_mut().get_or_insert_with(|| self.calc_reference()) {
+        match self.reference() {
             MptNodeReference::Bytes(bytes) => bytes.len(),
             MptNodeReference::Digest(_) => 1 + 32,
         }
@@ -711,7 +826,7 @@ impl MptNode {
     }
 
     fn invalidate_ref_cache(&mut self) {
-        self.cached_reference.borrow_mut().take();
+        self.cached_reference.lock().unwrap().take();
     }
 
     /// Returns the number of traversable nodes in the trie.
@@ -1282,6 +1397,18 @@ mod tests {
         // lookups should fail
         trie.get(b"aa").unwrap_err();
         trie.get(b"a0").unwrap_err();
+    }
+
+    #[test]
+    pub fn test_for_each_leaves() {
+        let mut trie = MptNode::default();
+        trie.insert(b"dog", b"puppy".to_vec()).unwrap();
+        trie.insert(b"dock", b"boat".to_vec()).unwrap();
+
+        trie.for_each_leaves(|k, v| {
+            println!("key: {k:?}");
+            println!("value: {v:?}");
+        });
     }
 
     #[test]
