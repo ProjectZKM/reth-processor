@@ -5,8 +5,8 @@ use alloy_consensus::Block;
 use alloy_network::Ethereum;
 use alloy_provider::RootProvider;
 use guest_executor::executor::{
-    ACCRUE_LOG_BLOOM, BLOCK_EXECUTION, COMPUTE_STATE_ROOT, DESERIALZE_INPUTS, INIT_WITNESS_DB,
-    RECOVER_SENDERS, VALIDATE_EXECUTION,
+    BLOCK_EXECUTION, COMPUTE_STATE_ROOT, DESERIALZE_INPUTS, INIT_WITNESS_DB, RECOVER_SENDERS,
+    VALIDATE_EXECUTION,
 };
 use host_executor::{
     build_executor, create_eth_block_execution_strategy_factory, BlockExecutor, Config,
@@ -39,7 +39,7 @@ async fn test_in_zkvm() {
     };
 
     let rpc_url = Url::parse(env::var("RPC_1").unwrap().as_str()).expect("invalid rpc url");
-    let elf = include_elf!("guest").to_vec();
+    let elf = include_elf!("reth").to_vec();
     let block_execution_strategy_factory =
         create_eth_block_execution_strategy_factory(&config.genesis, config.custom_beneficiary);
 
@@ -109,11 +109,6 @@ impl ExecutionHooks for Hook {
                     block_validation_cycles_count: execution_report
                         .cycle_tracker
                         .get(VALIDATE_EXECUTION)
-                        .copied()
-                        .unwrap_or(0),
-                    accrue_logs_bloom_cycles_count: execution_report
-                        .cycle_tracker
-                        .get(ACCRUE_LOG_BLOOM)
                         .copied()
                         .unwrap_or(0),
                     state_root_computation_cycles_count: execution_report
@@ -205,15 +200,6 @@ impl ExecutionHooks for Hook {
                             current_dev_stats.block_validation_cycles_count,
                         ),
                         row(
-                            "Accrue Logs Bloom",
-                            execution_report
-                                .cycle_tracker
-                                .get(ACCRUE_LOG_BLOOM)
-                                .copied()
-                                .unwrap_or_default(),
-                            current_dev_stats.accrue_logs_bloom_cycles_count,
-                        ),
-                        row(
                             "State Root Computation",
                             execution_report
                                 .cycle_tracker
@@ -257,7 +243,6 @@ struct Stats {
     pub recover_senders_cycles_count: u64,
     pub block_execution_cycles_count: u64,
     pub block_validation_cycles_count: u64,
-    pub accrue_logs_bloom_cycles_count: u64,
     pub state_root_computation_cycles_count: u64,
     pub syscall_count: u64,
     pub prover_gas: u64,
