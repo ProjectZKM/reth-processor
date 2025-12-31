@@ -3,6 +3,7 @@ use std::sync::Arc;
 use alloy_consensus::{BlockHeader, Header};
 use alloy_primitives::B256;
 use itertools::Itertools;
+use primitives::is_goat_testnet;
 use reth_chainspec::ChainSpec;
 use reth_errors::BlockExecutionError;
 use reth_evm::{
@@ -101,6 +102,7 @@ where
                 &block,
                 self.chain_spec.clone(),
                 &execution_output,
+                is_goat_testnet(chain_id),
             )
         })?;
 

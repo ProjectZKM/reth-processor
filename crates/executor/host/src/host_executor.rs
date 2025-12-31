@@ -8,7 +8,7 @@ use alloy_provider::{Network, Provider};
 use guest_executor::{
     custom::CustomEvmFactory, io::ClientExecutorInput, BlockValidator, IntoInput, IntoPrimitives,
 };
-use primitives::genesis::Genesis;
+use primitives::{genesis::Genesis, is_goat_testnet};
 use reth_chainspec::ChainSpec;
 use reth_evm::{
     execute::{BasicBlockExecutor, Executor},
@@ -126,7 +126,11 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             .try_into_recovered()
             .map_err(|_| HostError::FailedToRecoverSenders)?;
 
+        tracing::info!("[{}] validate block", block_number);
+        C::Primitives::validate_block(&block, self.chain_spec.clone())?;
+
         // Validate the block header.
+        tracing::info!("[{}] validate header", block_number);
         C::Primitives::validate_header(
             &SealedHeader::seal_slow(C::Primitives::into_consensus_header(
                 rpc_block.header().clone(),
@@ -145,6 +149,7 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             &block,
             self.chain_spec.clone(),
             &execution_output,
+            is_goat_testnet(chain_id),
         )?;
 
         // Accumulate the logs bloom.
