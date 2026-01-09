@@ -28,7 +28,7 @@ pub fn verify_block(input: &[u8]) -> (B256, B256, B256) {
         input.custom_beneficiary,
     );
     let (header, prev_state_root) =
-        executor.execute(input, None).expect("failed to execute client");
+        executor.execute(input, vec![]).expect("failed to execute client");
     let block_hash = header.hash_slow();
     (block_hash, header.state_root, prev_state_root)
 }

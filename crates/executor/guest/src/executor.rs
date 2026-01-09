@@ -56,7 +56,7 @@ where
     pub fn execute(
         &self,
         mut input: ClientExecutorInput<C::Primitives>,
-        storage_info: Option<Vec<(Address, U256, U256)>>,
+        storage_info: Vec<(Address, U256, U256)>,
     ) -> Result<(Header, B256), ClientError> {
         let chain_id: u64 = (&input.genesis).try_into().expect("convert chain id err");
 
@@ -154,7 +154,7 @@ where
             requests_hash: input.current_block.header().requests_hash(),
         };
 
-        if storage_info.is_some() {
+        if !storage_info.is_empty() {
             let check_result: Result<(), ClientError> = profile_report!(CHECK_SLOT_AND_VALUE, {
                 let state = input.state();
                 let db = {
@@ -199,7 +199,7 @@ where
                     TrieDB::new(state, block_hashes, bytecodes_by_hash)
                 };
 
-                for (contract_address, slot_id, expected_value) in storage_info.unwrap() {
+                for (contract_address, slot_id, expected_value) in storage_info {
                     match db.storage_ref(contract_address, slot_id) {
                         Ok(actual_value) => {
                             if actual_value != expected_value {
