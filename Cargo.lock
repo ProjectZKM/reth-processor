@@ -7269,6 +7269,7 @@ dependencies = [
  "revm-database-interface",
  "revm-primitives",
  "revm-state",
+ "serde",
  "thiserror 1.0.69",
  "tokio",
  "tracing",

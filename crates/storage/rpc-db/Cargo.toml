@@ -9,6 +9,7 @@ async-trait.workspace = true
 tokio.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+serde.workspace = true
 
 mpt.workspace = true
 primitives.workspace = true
@@ -33,7 +34,7 @@ alloy-trie = { workspace = true, optional = true, features = ["ethereum"] }
 [features]
 default = ["execution-witness"]
 execution-witness = [
-    "dep:alloy-consensus", 
+    "dep:alloy-consensus",
     "dep:alloy-rlp",
     "dep:alloy-trie",
     "alloy-provider/debug-api"
