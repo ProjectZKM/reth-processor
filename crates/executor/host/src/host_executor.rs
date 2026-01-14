@@ -76,6 +76,8 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
         let chain_id: u64 = (&genesis).try_into().unwrap();
         tracing::debug!("chain id: {}", chain_id);
 
+        let is_goat_testnet = is_goat_testnet(chain_id);
+
         // Fetch the current block and the previous block from the provider.
         tracing::info!("[{}] fetching the current block and the previous block", block_number);
         let rpc_block = provider
@@ -105,6 +107,7 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             debug_provider,
             block_number - 1,
             previous_block.header().state_root(),
+            is_goat_testnet,
         )
         .await
         .map_err(HostError::RpcDbError)?;
@@ -149,7 +152,7 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             &block,
             self.chain_spec.clone(),
             &execution_output,
-            is_goat_testnet(chain_id),
+            is_goat_testnet,
         )?;
 
         // Accumulate the logs bloom.

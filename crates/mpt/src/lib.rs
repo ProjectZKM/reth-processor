@@ -1,6 +1,4 @@
-#![cfg_attr(not(test), warn(unused_crate_dependencies))]
-
-use alloy_primitives::{keccak256, map::HashMap, Address, B256};
+use alloy_primitives::{keccak256, map::HashMap, Address, Bytes, B256};
 use alloy_rpc_types::EIP1186AccountProofResponse;
 use reth_trie::{AccountProof, HashedPostState, HashedStorage, TrieAccount};
 use serde::{Deserialize, Serialize};
@@ -73,12 +71,9 @@ impl EthereumState {
     }
 
     #[cfg(feature = "execution-witness")]
-    pub fn from_execution_witness(
-        witness: &alloy_rpc_types_debug::ExecutionWitness,
-        pre_state_root: B256,
-    ) -> Self {
+    pub fn from_execution_witness(state: &Vec<Bytes>, pre_state_root: B256) -> Self {
         let (state_trie, storage_tries) =
-            execution_witness::build_validated_tries(witness, pre_state_root).unwrap();
+            execution_witness::build_validated_tries(state, pre_state_root).unwrap();
 
         Self { state_trie, storage_tries }
     }
