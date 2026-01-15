@@ -88,7 +88,18 @@ impl EthereumState {
                         .get(hashed_address)
                         .cloned()
                         .unwrap_or_else(|| HashedStorage::new(false));
-                    let storage_root = {
+
+                    let storage_root = if state_storage.is_empty() {
+                        // Preserve the existing storage root when witness lacks the storage trie.
+                        self.state_trie
+                            .get_rlp::<TrieAccount>(hashed_address.as_slice())
+                            .ok()
+                            .flatten()
+                            .map(|existing| existing.storage_root)
+                            .unwrap_or_else(|| {
+                                self.storage_tries.entry(*hashed_address).or_default().hash()
+                            })
+                    } else {
                         let storage_trie = self.storage_tries.entry(*hashed_address).or_default();
 
                         if state_storage.wiped {
