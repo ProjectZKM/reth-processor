@@ -151,16 +151,16 @@ impl DatabaseRef for TrieDB<'_> {
         let hashed_address = keccak256(address);
         let hashed_address = hashed_address.as_slice();
 
-        let storage_trie = self
-            .inner
-            .storage_tries
-            .get(hashed_address)
-            .expect("A storage trie must be provided for each account");
+        let storage_trie = self.inner.storage_tries.get(hashed_address);
 
-        Ok(storage_trie
-            .get_rlp::<U256>(keccak256(index.to_be_bytes::<32>()).as_slice())
-            .expect("Can get from MPT")
-            .unwrap_or_default())
+        if let Some(storage_trie) = storage_trie {
+            Ok(storage_trie
+                .get_rlp::<U256>(keccak256(index.to_be_bytes::<32>()).as_slice())
+                .expect("Can get from MPT")
+                .unwrap_or_default())
+        } else {
+            Ok(U256::ZERO)
+        }
     }
 
     /// Get block hash by block number.

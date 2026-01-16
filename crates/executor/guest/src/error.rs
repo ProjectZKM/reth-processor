@@ -2,6 +2,7 @@ use alloy_primitives::{Address, FixedBytes};
 use mpt::Error as MptError;
 use reth_consensus::ConsensusError;
 use reth_evm::execute::BlockExecutionError;
+use revm_primitives::U256;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
@@ -31,4 +32,8 @@ pub enum ClientError {
     FailedToReadGenesisFile(#[from] std::io::Error),
     #[error("Failed to deserialize the genesis file: {}", .0)]
     FailedToDeserializeGenesisFile(#[from] serde_json::Error),
+    #[error("Failed to check slot and value: {}", .0)]
+    FailedToCheckSlotAndValue(U256),
+    #[error("Failed to fetch slot and value: {}", .0)]
+    FailedToFetchSlotAndValue(U256),
 }
