@@ -15,6 +15,7 @@ reth-chainspec.workspace = true
 reth-optimism-chainspec = { workspace = true, optional = true }
 reth-optimism-forks = { workspace = true, optional = true }
 reth-trie.workspace = true
+alloy-primitives.workspace = true
 
 # alloy
 alloy-eips.workspace = true

@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use crate::{RpcDb, RpcDbError};
 use alloy_consensus::{private::alloy_eips::BlockNumberOrTag, Header};
 use alloy_primitives::{map::HashMap, Address, Bytes, B256};
 use alloy_provider::{ext::DebugApi, Network, Provider};
@@ -7,13 +8,12 @@ use alloy_rlp::Decodable;
 use alloy_trie::TrieAccount;
 use async_trait::async_trait;
 use mpt::EthereumState;
+use primitives::is_precompile;
 use reth_storage_errors::ProviderError;
 use revm_database::{BundleState, DatabaseRef};
 use revm_primitives::{keccak256, ruint::aliases::U256, StorageKey, StorageValue};
 use revm_state::{AccountInfo, Bytecode};
 use serde::{Deserialize, Serialize};
-
-use crate::{RpcDb, RpcDbError};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionWitnessGoat {
@@ -85,23 +85,31 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
 
     fn basic_ref(&self, address: Address) -> Result<Option<AccountInfo>, Self::Error> {
         let hash = keccak256(address);
-        if let Some(mut bytes) = self
+        match self
             .state
             .state_trie
             .get(hash.as_ref())
-            .map_err(|err| ProviderError::TrieWitnessError(err.to_string()))?
+            .map_err(|err| ProviderError::TrieWitnessError(err.to_string()))
         {
-            let account = TrieAccount::decode(&mut bytes)?;
-            let account_info = AccountInfo {
-                balance: account.balance,
-                nonce: account.nonce,
-                code_hash: account.code_hash,
-                code: None,
-            };
+            Ok(Some(mut bytes)) => {
+                let account = TrieAccount::decode(&mut bytes)?;
+                let account_info = AccountInfo {
+                    balance: account.balance,
+                    nonce: account.nonce,
+                    code_hash: account.code_hash,
+                    code: None,
+                };
 
-            Ok(Some(account_info))
-        } else {
-            Ok(None)
+                Ok(Some(account_info))
+            }
+            Ok(None) => Ok(None),
+            Err(err) => {
+                // If the account is a precompile, we can assume it's empty.
+                if is_precompile(address) {
+                    return Ok(None);
+                }
+                Err(err)
+            }
         }
     }
 

@@ -1,10 +1,11 @@
 use std::iter::once;
 
+use crate::error::ClientError;
 use alloy_consensus::{Block, BlockHeader, Header};
 use alloy_primitives::map::HashMap;
 use itertools::Itertools;
 use mpt::EthereumState;
-use primitives::genesis::Genesis;
+use primitives::{genesis::Genesis, is_precompile};
 use reth_errors::ProviderError;
 use reth_ethereum_primitives::EthPrimitives;
 use reth_primitives_traits::{NodePrimitives, SealedHeader};
@@ -16,8 +17,6 @@ use revm::{
 use revm_primitives::{keccak256, Address, B256, U256};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-
-use crate::error::ClientError;
 
 pub type EthClientExecutorInput = ClientExecutorInput<EthPrimitives>;
 
@@ -129,7 +128,11 @@ impl DatabaseRef for TrieDB<'_> {
         let hashed_address = keccak256(address);
         let hashed_address = hashed_address.as_slice();
 
-        let account_in_trie = self.inner.state_trie.get_rlp::<TrieAccount>(hashed_address).unwrap();
+        let account_in_trie = match self.inner.state_trie.get_rlp::<TrieAccount>(hashed_address) {
+            Ok(res) => res,
+            Err(mpt::Error::NodeNotResolved(_)) if is_precompile(address) => None,
+            Err(err) => return Err(ProviderError::TrieWitnessError(err.to_string())),
+        };
 
         let account = account_in_trie.map(|account_in_trie| AccountInfo {
             balance: account_in_trie.balance,
