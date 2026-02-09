@@ -11,7 +11,7 @@ use mpt::EthereumState;
 use primitives::is_precompile;
 use reth_storage_errors::ProviderError;
 use revm_database::{BundleState, DatabaseRef};
-use revm_primitives::{keccak256, ruint::aliases::U256, StorageKey, StorageValue, KECCAK_EMPTY};
+use revm_primitives::{keccak256, ruint::aliases::U256, StorageKey, StorageValue};
 use revm_state::{AccountInfo, Bytecode};
 use serde::{Deserialize, Serialize};
 
@@ -122,45 +122,45 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
         let provider = self.provider.clone();
         let block_tag = BlockNumberOrTag::Number(self.parent_block_number);
 
-        let result: Result<(U256, u64), Box<dyn std::error::Error + Send + Sync>> =
+        let result: Result<(U256, u64, Bytecode), Box<dyn std::error::Error + Send + Sync>> =
             tokio::task::block_in_place(|| {
                 handle.block_on(async {
-                    // Fetch balance and nonce in parallel
+                    // Fetch balance, nonce and code in parallel
                     let balance_fut = provider.get_balance(address).block_id(block_tag.into());
                     let nonce_fut =
                         provider.get_transaction_count(address).block_id(block_tag.into());
+                    let code_fut = provider.get_code_at(address).block_id(block_tag.into());
 
-                    let (balance, nonce) = tokio::try_join!(balance_fut, nonce_fut)?;
+                    let (balance, nonce, code) =
+                        tokio::try_join!(balance_fut, nonce_fut, code_fut)?;
+                    let bytecode = Bytecode::new_raw(code);
 
-                    Ok((balance, nonce))
+                    Ok((balance, nonce, bytecode))
                 })
             });
 
         match result {
-            Ok((balance, nonce)) => {
+            Ok((balance, nonce, bytecode)) => {
                 // Record this address for proof fetching in state()
                 self.fallback_addresses.write().unwrap().push(address);
 
-                // If both balance and nonce are zero, the account doesn't exist
-                if balance.is_zero() && nonce == 0 {
+                // If balance, nonce and code are all zero/empty, treat as non-existent
+                if balance.is_zero() && nonce == 0 && bytecode.is_empty() {
                     tracing::debug!(
-                        "RPC fallback: address {:?} has zero balance and nonce, treating as non-existent",
+                        "RPC fallback: address {:?} has zero balance, nonce and empty code, treating as non-existent",
                         address
                     );
                     Ok(None)
                 } else {
-                    tracing::info!(
-                        "RPC fallback: address {:?} has balance={}, nonce={}",
+                    let code_hash = bytecode.hash_slow();
+                    tracing::debug!(
+                        "RPC fallback: address {:?} has balance={}, nonce={}, code_hash={}",
                         address,
                         balance,
-                        nonce
-                    );
-                    Ok(Some(AccountInfo {
-                        balance,
                         nonce,
-                        code_hash: KECCAK_EMPTY, // EOA accounts have empty code
-                        code: None,
-                    }))
+                        code_hash
+                    );
+                    Ok(Some(AccountInfo { balance, nonce, code_hash, code: Some(bytecode) }))
                 }
             }
             Err(err) => {
