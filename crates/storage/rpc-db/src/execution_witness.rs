@@ -176,11 +176,9 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
         P: Clone,
     {
         let fallback_addrs: Vec<Address> = self.fallback_addresses.read().unwrap().clone();
-
         if fallback_addrs.is_empty() {
             return Ok(self.raw_state_nodes.clone());
         }
-
         tracing::info!(
             "Fetching proofs for {} fallback addresses to complete witness",
             fallback_addrs.len()
@@ -188,13 +186,10 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
 
         let block_tag = BlockNumberOrTag::Number(self.parent_block_number);
         let mut merged_nodes = self.raw_state_nodes.clone();
-
         for address in fallback_addrs {
             // Fetch the account proof via eth_getProof
             let proof = self.provider.get_proof(address, vec![]).block_id(block_tag.into()).await?;
-
             let node_count = proof.account_proof.len();
-
             // Add proof nodes to the merged list
             for node in proof.account_proof {
                 merged_nodes.push(node);
