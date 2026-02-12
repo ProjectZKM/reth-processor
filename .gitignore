@@ -37,3 +37,4 @@ openssl.cnf
 ssl.csr
 ssl.pem
 ssl.key
+vk.bin
