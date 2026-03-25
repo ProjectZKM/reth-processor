@@ -99,6 +99,16 @@ This will continuously:
 - Generate a proof and submit its proving time
 - Sleep for the specified duration before the next iteration
 
+# Parallel block execution
+
+To execute blocks in parallel, use the `continuous` binary. See the example in `bin/continuous/` for usage.
+
+The number of blocks executed in parallel can be customized with the `MAX_CONCURRENT_EXECUTIONS` environment variable.
+
+```bash
+ZKM_DUMP=1 RUST_LOG=info cargo run -r --bin continuous -- --block-number <START_NUMBER> --rpc-url <RPC_URL> --chain-id <CHAIN_ID>
+```
+
 ## FAQ
 
 ### What are good testing blocks
