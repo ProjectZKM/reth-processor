@@ -84,7 +84,7 @@ checksum = "35d744058a9daa51a8cf22a3009607498fcf82d3cf4c5444dd8056cdf651f471"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
- "num_enum 0.7.5",
+ "num_enum",
  "serde",
  "strum 0.27.2",
 ]
@@ -587,22 +587,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alloy-signer-local"
-version = "1.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72cfe0be3ec5a8c1a46b2e5a7047ed41121d360d97f4405bb7c1c784880c86cb"
-dependencies = [
- "alloy-consensus",
- "alloy-network",
- "alloy-primitives",
- "alloy-signer",
- "async-trait",
- "k256",
- "rand 0.8.5",
- "thiserror 2.0.17",
-]
-
-[[package]]
 name = "alloy-sol-macro"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -657,7 +641,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "954d1b2533b9b2c7959652df3076954ecb1122a28cc740aa84e7b0a49f6ac0a9"
 dependencies = [
  "serde",
- "winnow 0.7.14",
+ "winnow",
 ]
 
 [[package]]
@@ -1546,7 +1530,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0686c856aa6aac0c4498f936d7d6a02df690f614c03e4d906d1018062b5c5e2c"
 dependencies = [
  "once_cell",
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -1689,25 +1673,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "cbindgen"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fce8dd7fcfcbf3a0a87d8f515194b49d6135acab73e18bd380d1d93bb1a15eb"
-dependencies = [
- "clap",
- "heck 0.4.1",
- "indexmap 2.12.1",
- "log",
- "proc-macro2",
- "quote",
- "serde",
- "serde_json",
- "syn 2.0.111",
- "tempfile",
- "toml",
 ]
 
 [[package]]
@@ -2009,15 +1974,6 @@ name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
-
-[[package]]
-name = "crossbeam-channel"
-version = "0.5.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
-dependencies = [
- "crossbeam-utils",
-]
 
 [[package]]
 name = "crossbeam-deque"
@@ -2464,12 +2420,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
 
 [[package]]
-name = "downcast-rs"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
-
-[[package]]
 name = "dunce"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2882,7 +2832,7 @@ dependencies = [
  "ethabi",
  "generic-array 0.14.7",
  "k256",
- "num_enum 0.7.5",
+ "num_enum",
  "once_cell",
  "open-fastrlp",
  "rand 0.8.5",
@@ -4975,33 +4925,12 @@ dependencies = [
 
 [[package]]
 name = "num_enum"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f646caf906c20226733ed5b1374287eb97e3c2a5c227ce668c1f2ce20ae57c9"
-dependencies = [
- "num_enum_derive 0.5.11",
-]
-
-[[package]]
-name = "num_enum"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1207a7e20ad57b847bbddc6776b968420d38292bbfe2089accff5e19e82454c"
 dependencies = [
- "num_enum_derive 0.7.5",
+ "num_enum_derive",
  "rustversion",
-]
-
-[[package]]
-name = "num_enum_derive"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcbff9bc912032c62bf65ef1d5aea88983b420f4f839db1e9b0c281a25c9c799"
-dependencies = [
- "proc-macro-crate 1.3.1",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -5010,7 +4939,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -5618,7 +5547,7 @@ version = "3.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34b4653168b563151153c9e4c08ebed57fb8262bebfa79711552fa983c623e7a"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -5726,12 +5655,6 @@ name = "path-slash"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e91099d4268b0e11973f036e885d652fb0b21fedcf69738c627f94db6a44f42"
-
-[[package]]
-name = "pathdiff"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "pbkdf2"
@@ -6054,16 +5977,6 @@ dependencies = [
  "reth-trie",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "proc-macro-crate"
-version = "1.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f4c021e1093a56626774e81216a4ce732a735e5bad4868a03f3ed65ca0c3919"
-dependencies = [
- "once_cell",
- "toml_edit 0.19.15",
 ]
 
 [[package]]
@@ -7341,7 +7254,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29e161db429d465c09ba9cbff0df49e31049fe6b549e28eb0b7bd642fcbd4412"
 dependencies = [
  "alloy-primitives",
- "num_enum 0.7.5",
+ "num_enum",
  "once_cell",
  "serde",
 ]
@@ -7448,17 +7361,6 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "rrs-succinct"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3372685893a9f67d18e98e792d690017287fd17379a83d798d958e517d380fa9"
-dependencies = [
- "downcast-rs",
- "num_enum 0.5.11",
- "paste",
 ]
 
 [[package]]
@@ -7713,19 +7615,10 @@ version = "2.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6630024bf739e2179b91fb424b28898baf819414262c5d376677dbff1fe7ebf"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
-]
-
-[[package]]
-name = "scc"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46e6f046b7fef48e2660c57ed794263155d713de679057f2d0c169bfc6e756cc"
-dependencies = [
- "sdd",
 ]
 
 [[package]]
@@ -7788,12 +7681,6 @@ dependencies = [
  "ring 0.17.14",
  "untrusted 0.9.0",
 ]
-
-[[package]]
-name = "sdd"
-version = "3.0.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "490dcfcbfef26be6800d11870ff2df8774fa6e86d047e3e8c8a76b25655e41ca"
 
 [[package]]
 name = "sec1"
@@ -8038,31 +7925,6 @@ checksum = "a84f14a19e9a014bb9f4512488d9829a68e04ecabffb0f9904cd1ace94598177"
 dependencies = [
  "base16ct",
  "serde",
-]
-
-[[package]]
-name = "serial_test"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b258109f244e1d6891bf1053a55d63a5cd4f8f4c30cf9a1280989f80e7a1fa9"
-dependencies = [
- "futures",
- "log",
- "once_cell",
- "parking_lot 0.12.5",
- "scc",
- "serial_test_derive",
-]
-
-[[package]]
-name = "serial_test_derive"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d69265a08751de7844521fd15003ae0a888e035773ba05695c5c759a6f89eef"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.111",
 ]
 
 [[package]]
@@ -8823,17 +8685,6 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.19.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
-dependencies = [
- "indexmap 2.12.1",
- "toml_datetime 0.6.11",
- "winnow 0.5.40",
-]
-
-[[package]]
-name = "toml_edit"
 version = "0.22.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
@@ -8843,7 +8694,7 @@ dependencies = [
  "serde_spanned",
  "toml_datetime 0.6.11",
  "toml_write",
- "winnow 0.7.14",
+ "winnow",
 ]
 
 [[package]]
@@ -8855,7 +8706,7 @@ dependencies = [
  "indexmap 2.12.1",
  "toml_datetime 0.7.3",
  "toml_parser",
- "winnow 0.7.14",
+ "winnow",
 ]
 
 [[package]]
@@ -8864,7 +8715,7 @@ version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0cbe268d35bdb4bb5a56a2de88d0ad0eb70af5384a99d648cd4b3d04039800e"
 dependencies = [
- "winnow 0.7.14",
+ "winnow",
 ]
 
 [[package]]
@@ -8997,18 +8848,6 @@ dependencies = [
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
-]
-
-[[package]]
-name = "tracing-appender"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "786d480bce6247ab75f005b14ae1624ad978d3029d9113f0a22fa1ac773faeaf"
-dependencies = [
- "crossbeam-channel",
- "thiserror 2.0.17",
- "time",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -9918,15 +9757,6 @@ checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
 
 [[package]]
 name = "winnow"
-version = "0.5.40"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f593a95398737aeed53e489c785df13f3618e41dbcd6718c6addbf1395aa6876"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "winnow"
 version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5364e9d77fcdeeaa6062ced926ee3381faa2ee02d3eb83a5c27a8825540829"
@@ -10177,20 +10007,19 @@ dependencies = [
 
 [[package]]
 name = "zkm-build"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "anyhow",
  "cargo_metadata",
  "chrono",
  "clap",
- "dirs",
 ]
 
 [[package]]
 name = "zkm-core-executor"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10205,13 +10034,13 @@ dependencies = [
  "log",
  "nohash-hasher",
  "num",
+ "num_enum",
  "p3-field",
  "p3-koala-bear",
  "p3-maybe-rayon",
  "p3-symmetric",
  "rand 0.8.5",
  "rayon-scan",
- "rrs-succinct",
  "serde",
  "serde_json",
  "sha2",
@@ -10230,16 +10059,13 @@ dependencies = [
 
 [[package]]
 name = "zkm-core-machine"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "bincode",
- "cbindgen",
- "cc",
  "cfg-if",
  "elliptic-curve",
  "generic-array 1.3.5",
- "glob",
  "hashbrown 0.14.5",
  "hex",
  "itertools 0.13.0",
@@ -10258,7 +10084,6 @@ dependencies = [
  "p3-poseidon2",
  "p3-uni-stark",
  "p3-util",
- "pathdiff",
  "rand 0.8.5",
  "rayon",
  "rayon-scan",
@@ -10286,8 +10111,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-cuda"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "bincode",
  "ctrlc",
@@ -10304,8 +10129,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-curves"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "cfg-if",
  "curve25519-dalek",
@@ -10319,6 +10144,8 @@ dependencies = [
  "p3-field",
  "serde",
  "snowbridge-amcl",
+ "thiserror 1.0.69",
+ "tracing",
  "typenum",
  "zkm-primitives",
  "zkm-stark",
@@ -10326,17 +10153,18 @@ dependencies = [
 
 [[package]]
 name = "zkm-derive"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
+ "proc-macro2",
  "quote",
  "syn 1.0.109",
 ]
 
 [[package]]
 name = "zkm-lib"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -10348,8 +10176,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-primitives"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "bincode",
  "hex",
@@ -10366,8 +10194,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-prover"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10388,10 +10216,8 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
- "serial_test",
  "thiserror 1.0.69",
  "tracing",
- "tracing-appender",
  "tracing-subscriber",
  "zkm-core-executor",
  "zkm-core-machine",
@@ -10405,8 +10231,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-recursion-circuit"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -10438,8 +10264,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-recursion-compiler"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -10459,14 +10285,11 @@ dependencies = [
 
 [[package]]
 name = "zkm-recursion-core"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "backtrace",
- "cbindgen",
- "cc",
  "ff 0.13.1",
- "glob",
  "hashbrown 0.14.5",
  "itertools 0.13.0",
  "p3-air",
@@ -10484,7 +10307,6 @@ dependencies = [
  "p3-poseidon2",
  "p3-symmetric",
  "p3-util",
- "pathdiff",
  "rand 0.8.5",
  "serde",
  "static_assertions",
@@ -10500,8 +10322,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-recursion-derive"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -10509,13 +10331,12 @@ dependencies = [
 
 [[package]]
 name = "zkm-recursion-gnark-ffi"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "anyhow",
  "bincode",
  "bindgen",
- "cc",
  "cfg-if",
  "hex",
  "log",
@@ -10534,12 +10355,11 @@ dependencies = [
 
 [[package]]
 name = "zkm-sdk"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
+ "alloy-primitives",
  "alloy-signer",
- "alloy-signer-local",
- "alloy-sol-types",
  "anyhow",
  "async-trait",
  "bincode",
@@ -10582,8 +10402,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-stark"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "arrayref",
  "hashbrown 0.14.5",
@@ -10624,8 +10444,8 @@ dependencies = [
 
 [[package]]
 name = "zkm-zkvm"
-version = "1.2.3"
-source = "git+https://github.com/ProjectZKM/Ziren#be43a854e4be21c11fb87304f9794dc9137b492d"
+version = "1.2.5"
+source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
 dependencies = [
  "bincode",
  "cfg-if",
