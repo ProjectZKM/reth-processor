@@ -4719,6 +4719,7 @@ dependencies = [
  "alloy-rpc-types",
  "alloy-rpc-types-debug",
  "hex-literal",
+ "reth-primitives-traits",
  "reth-trie",
  "rlp",
  "serde",
@@ -7345,9 +7346,12 @@ name = "rpc-db"
 version = "0.1.0"
 dependencies = [
  "alloy-consensus",
+ "alloy-eips",
  "alloy-primitives",
  "alloy-provider",
  "alloy-rlp",
+ "alloy-rpc-types",
+ "alloy-rpc-types-debug",
  "alloy-transport",
  "alloy-trie",
  "async-trait",
@@ -7358,6 +7362,8 @@ dependencies = [
  "revm-database-interface",
  "revm-primitives",
  "revm-state",
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
@@ -10008,7 +10014,7 @@ dependencies = [
 [[package]]
 name = "zkm-build"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -10019,7 +10025,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-executor"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10060,7 +10066,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-machine"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -10112,7 +10118,7 @@ dependencies = [
 [[package]]
 name = "zkm-cuda"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "ctrlc",
@@ -10130,7 +10136,7 @@ dependencies = [
 [[package]]
 name = "zkm-curves"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "cfg-if",
  "curve25519-dalek",
@@ -10154,7 +10160,7 @@ dependencies = [
 [[package]]
 name = "zkm-derive"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -10164,7 +10170,7 @@ dependencies = [
 [[package]]
 name = "zkm-lib"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -10177,7 +10183,7 @@ dependencies = [
 [[package]]
 name = "zkm-primitives"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "hex",
@@ -10195,7 +10201,7 @@ dependencies = [
 [[package]]
 name = "zkm-prover"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10232,7 +10238,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-circuit"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -10265,7 +10271,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-compiler"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -10286,7 +10292,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-core"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "backtrace",
  "ff 0.13.1",
@@ -10323,7 +10329,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-derive"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -10332,7 +10338,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-gnark-ffi"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10356,7 +10362,7 @@ dependencies = [
 [[package]]
 name = "zkm-sdk"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "alloy-primitives",
  "alloy-signer",
@@ -10403,7 +10409,7 @@ dependencies = [
 [[package]]
 name = "zkm-stark"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "arrayref",
  "hashbrown 0.14.5",
@@ -10445,7 +10451,7 @@ dependencies = [
 [[package]]
 name = "zkm-zkvm"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "cfg-if",

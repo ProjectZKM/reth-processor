@@ -4474,7 +4474,7 @@ dependencies = [
 [[package]]
 name = "zkm-lib"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -4487,7 +4487,7 @@ dependencies = [
 [[package]]
 name = "zkm-primitives"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "hex",
@@ -4505,7 +4505,7 @@ dependencies = [
 [[package]]
 name = "zkm-zkvm"
 version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#c736a41cccd623427295f89b53306673adc89966"
+source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
 dependencies = [
  "bincode",
  "cfg-if",

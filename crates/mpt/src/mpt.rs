@@ -993,6 +993,24 @@ pub fn resolve_nodes(root: &MptNode, node_store: &HashMap<MptNodeReference, MptN
     trie
 }
 
+pub(crate) fn extend_trie_from_proof(
+    root: &MptNode,
+    proof: &[impl AsRef<[u8]>],
+) -> Result<MptNode, FromProofError> {
+    let proof_nodes = parse_proof(proof)?;
+    let proof_trie = mpt_from_proof(&proof_nodes)?;
+    if proof_trie.hash() != root.hash() {
+        return Err(FromProofError::MismatchedStateRoot(proof_trie.hash(), root.hash()))
+    }
+
+    let mut node_store = HashMap::with_hasher(Default::default());
+    proof_nodes.into_iter().for_each(|node| {
+        node_store.insert(node.reference(), node);
+    });
+
+    Ok(resolve_nodes(root, &node_store))
+}
+
 /// Returns a list of all possible nodes that can be created by shortening the path of the
 /// given node.
 /// When nodes in an MPT are deleted, leaves or extensions may be extended. To still be
@@ -1203,7 +1221,7 @@ fn add_orphaned_leafs(
 }
 
 /// Creates a new MPT node from a digest.
-fn node_from_digest(digest: B256) -> MptNode {
+pub(crate) fn node_from_digest(digest: B256) -> MptNode {
     match digest {
         EMPTY_ROOT | B256::ZERO => MptNode::default(),
         _ => MptNodeData::Digest(digest).into(),
@@ -1342,6 +1360,32 @@ mod tests {
         // lookups should fail
         trie.get(b"aa").unwrap_err();
         trie.get(b"a0").unwrap_err();
+    }
+
+    #[test]
+    pub fn test_extend_trie_from_proof_resolves_digest_child() {
+        let mut full_trie = MptNode::default();
+        full_trie.insert_rlp(b"aa", 0u8).unwrap();
+        full_trie.insert_rlp(b"ab", 1u8).unwrap();
+        full_trie.insert_rlp(b"ba", 2u8).unwrap();
+
+        let expected_hash = full_trie.hash();
+        let mut partial_trie = full_trie.clone();
+        let MptNodeData::Extension(_, node) = &mut partial_trie.data else {
+            panic!("extension expected")
+        };
+        let missing_node = (**node).clone();
+        **node = MptNodeData::Digest(missing_node.hash()).into();
+
+        partial_trie.get(b"aa").unwrap_err();
+
+        let proof = vec![full_trie.to_rlp(), missing_node.to_rlp()];
+        let resolved_trie = extend_trie_from_proof(&partial_trie, &proof).unwrap();
+
+        assert_eq!(resolved_trie.hash(), expected_hash);
+        assert_eq!(resolved_trie.get_rlp::<u8>(b"aa").unwrap(), Some(0));
+        assert_eq!(resolved_trie.get_rlp::<u8>(b"ab").unwrap(), Some(1));
+        assert_eq!(resolved_trie.get_rlp::<u8>(b"ba").unwrap(), Some(2));
     }
 
     #[test]
