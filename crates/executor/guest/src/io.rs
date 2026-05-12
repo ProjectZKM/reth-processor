@@ -57,7 +57,7 @@ impl<P: NodePrimitives> ClientExecutorInput<P> {
     /// Gets the immediate parent block's header.
     #[inline(always)]
     pub fn parent_header(&self) -> &Header {
-        &self.ancestor_headers[0]
+        self.ancestor_headers.last().unwrap()
     }
 
     /// Creates a [`WitnessDb`].
@@ -84,8 +84,10 @@ impl<P: NodePrimitives> WitnessInput for ClientExecutorInput<P> {
 
     #[inline(always)]
     fn sealed_headers(&self) -> impl Iterator<Item = SealedHeader> {
-        once(SealedHeader::seal_slow(self.current_block.header.clone()))
-            .chain(self.ancestor_headers.iter().map(|h| SealedHeader::seal_slow(h.clone())))
+        self.ancestor_headers
+            .iter()
+            .map(|h| SealedHeader::seal_slow(h.clone()))
+            .chain(once(SealedHeader::seal_slow(self.current_block.header.clone())))
     }
 }
 

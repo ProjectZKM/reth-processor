@@ -226,7 +226,7 @@ where
             let keys = used_keys
                 .iter()
                 .map(|key| B256::from(*key))
-                .chain(modified_keys.clone())
+                .chain(modified_keys.clone().into_iter())
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>();
