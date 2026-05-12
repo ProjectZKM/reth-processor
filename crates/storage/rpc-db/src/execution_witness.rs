@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::BTreeMap, marker::PhantomData};
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use alloy_consensus::Header;
 use alloy_primitives::{map::HashMap, Address, B256};
@@ -141,9 +141,6 @@ where
     }
 
     async fn ancestor_headers(&self) -> Result<Vec<Header>, RpcDbError> {
-        // The ancestor headers must be ordered from most recent to older
-        let mut ancestor_headers: Vec<Header> = self.ancestor_headers.values().cloned().collect();
-        ancestor_headers.sort_by_key(|header| Reverse(header.number));
-        Ok(ancestor_headers)
+        Ok(self.ancestor_headers.values().cloned().collect())
     }
 }

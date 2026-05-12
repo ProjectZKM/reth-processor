@@ -226,7 +226,7 @@ where
             let keys = used_keys
                 .iter()
                 .map(|key| B256::from(*key))
-                .chain(modified_keys.clone())
+                .chain(modified_keys.clone().into_iter())
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>();
@@ -268,7 +268,7 @@ where
         let oldest_ancestor = *self.oldest_ancestor.read().unwrap();
         let mut ancestor_headers = vec![];
         tracing::info!("fetching {} ancestor headers", (self.block_number + 1) - oldest_ancestor);
-        for height in (oldest_ancestor..=(self.block_number)).rev() {
+        for height in oldest_ancestor..=(self.block_number) {
             let block = self
                 .provider
                 .get_block_by_number(height.into())
