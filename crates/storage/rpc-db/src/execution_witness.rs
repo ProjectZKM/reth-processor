@@ -16,7 +16,7 @@ use async_trait::async_trait;
 use mpt::EthereumState;
 use reth_storage_errors::{db::DatabaseError, ProviderError};
 use revm_database::{BundleState, DatabaseRef};
-use revm_primitives::{keccak256, ruint::aliases::U256, StorageKey, StorageValue};
+use revm_primitives::{keccak256, ruint::aliases::U256, StorageKey, StorageValue, KECCAK_EMPTY};
 use revm_state::{AccountInfo, Bytecode};
 use serde::Deserialize;
 
@@ -31,7 +31,7 @@ pub struct ExecutionWitnessRpcDb<P, N> {
     /// The cached state.
     pub state: Arc<RwLock<EthereumState>>,
     /// The cached bytecodes.
-    pub codes: HashMap<B256, Bytecode>,
+    pub codes: Arc<RwLock<HashMap<B256, Bytecode>>>,
 
     pub ancestor_headers: BTreeMap<u64, Header>,
 
@@ -64,7 +64,7 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
             provider,
             state_block_number: block_number.saturating_sub(1),
             state: Arc::new(RwLock::new(state)),
-            codes,
+            codes: Arc::new(RwLock::new(codes)),
             ancestor_headers,
             phantom: PhantomData,
         };
@@ -135,6 +135,55 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
             handle.block_on(self.fetch_missing_storage_proof(address, index))
         })
         .map_err(|err| ProviderError::Database(DatabaseError::Other(err.to_string())))
+    }
+
+    async fn fetch_account_code(&self, address: Address) -> Result<Bytecode, RpcDbError> {
+        let code = self
+            .provider
+            .get_code_at(address)
+            .number(self.state_block_number)
+            .await
+            .map_err(|err| RpcDbError::GetCodeError(address, err.to_string()))?;
+
+        Ok(Bytecode::new_raw(code))
+    }
+
+    fn fetch_account_code_blocking(
+        &self,
+        address: Address,
+        expected_hash: B256,
+    ) -> Result<Bytecode, ProviderError> {
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| {
+            ProviderError::Database(DatabaseError::Other("no tokio runtime found".to_string()))
+        })?;
+        let bytecode =
+            tokio::task::block_in_place(|| handle.block_on(self.fetch_account_code(address)))
+                .map_err(|err| ProviderError::Database(DatabaseError::Other(err.to_string())))?;
+
+        cache_verified_code(&self.codes, address, expected_hash, bytecode)
+    }
+
+    fn complete_account_code(
+        &self,
+        address: Address,
+        account: Option<AccountInfo>,
+    ) -> Result<Option<AccountInfo>, ProviderError> {
+        let Some(mut account) = account else { return Ok(None) };
+
+        if account.code.is_none() && should_fetch_code(account.code_hash) {
+            if let Some(code) = cached_code(&self.codes, account.code_hash)? {
+                account.code = Some(code);
+            } else {
+                tracing::warn!(
+                    "Code {} not found in execution witness for address {}; fetching fallback code",
+                    account.code_hash,
+                    address
+                );
+                account.code = Some(self.fetch_account_code_blocking(address, account.code_hash)?);
+            }
+        }
+
+        Ok(Some(account))
     }
 
     fn ensure_empty_storage_trie(&self, hashed_address: B256) -> Result<(), ProviderError> {
@@ -236,6 +285,7 @@ impl AccountReadError {
 fn read_account_info_from_state(
     state: &EthereumState,
     address_hash: B256,
+    codes: &HashMap<B256, Bytecode>,
 ) -> Result<Option<AccountInfo>, AccountReadError> {
     if let Some(mut bytes) =
         state.state_trie.get(address_hash.as_ref()).map_err(AccountReadError::Trie)?
@@ -243,17 +293,53 @@ fn read_account_info_from_state(
         let account = TrieAccount::decode(&mut bytes)
             .map_err(ProviderError::from)
             .map_err(AccountReadError::Provider)?;
-        let account_info = AccountInfo {
-            balance: account.balance,
-            nonce: account.nonce,
-            code_hash: account.code_hash,
-            code: None,
-        };
+        let account_info =
+            account_info_from_trie_account(codes, account).map_err(AccountReadError::Provider)?;
 
         Ok(Some(account_info))
     } else {
         Ok(None)
     }
+}
+
+fn account_info_from_trie_account(
+    codes: &HashMap<B256, Bytecode>,
+    account: TrieAccount,
+) -> Result<AccountInfo, ProviderError> {
+    Ok(AccountInfo {
+        balance: account.balance,
+        nonce: account.nonce,
+        code_hash: account.code_hash,
+        code: codes.get(&account.code_hash).cloned(),
+    })
+}
+
+fn cached_code(
+    codes: &RwLock<HashMap<B256, Bytecode>>,
+    code_hash: B256,
+) -> Result<Option<Bytecode>, ProviderError> {
+    Ok(codes.read().map_err(|_| poisoned_provider_error())?.get(&code_hash).cloned())
+}
+
+fn cache_verified_code(
+    codes: &RwLock<HashMap<B256, Bytecode>>,
+    address: Address,
+    expected_hash: B256,
+    bytecode: Bytecode,
+) -> Result<Bytecode, ProviderError> {
+    let actual_hash = bytecode.hash_slow();
+    if actual_hash != expected_hash {
+        return Err(ProviderError::TrieWitnessError(format!(
+            "Fetched code hash mismatch for {address}: expected {expected_hash}, got {actual_hash}"
+        )))
+    }
+    codes.write().map_err(|_| poisoned_provider_error())?.insert(expected_hash, bytecode.clone());
+
+    Ok(bytecode)
+}
+
+fn should_fetch_code(code_hash: B256) -> bool {
+    code_hash != KECCAK_EMPTY && code_hash != B256::ZERO
 }
 
 #[derive(Debug)]
@@ -334,11 +420,12 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
         let hash = keccak256(address);
         let account = {
             let state = self.state.read().map_err(|_| poisoned_provider_error())?;
-            read_account_info_from_state(&state, hash)
+            let codes = self.codes.read().map_err(|_| poisoned_provider_error())?;
+            read_account_info_from_state(&state, hash, &codes)
         };
 
         match account {
-            Ok(account) => Ok(account),
+            Ok(account) => self.complete_account_code(address, account),
             Err(err) => {
                 let Some(digest) = err.unresolved_node() else {
                     return Err(err.into_provider_error())
@@ -351,15 +438,21 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
                 );
                 self.fetch_missing_account_proof_blocking(address)?;
 
-                let state = self.state.read().map_err(|_| poisoned_provider_error())?;
-                read_account_info_from_state(&state, hash)
-                    .map_err(AccountReadError::into_provider_error)
+                let account = {
+                    let state = self.state.read().map_err(|_| poisoned_provider_error())?;
+                    let codes = self.codes.read().map_err(|_| poisoned_provider_error())?;
+                    read_account_info_from_state(&state, hash, &codes)
+                        .map_err(AccountReadError::into_provider_error)?
+                };
+                self.complete_account_code(address, account)
             }
         }
     }
 
     fn code_by_hash_ref(&self, code_hash: B256) -> Result<Bytecode, Self::Error> {
         self.codes
+            .read()
+            .map_err(|_| poisoned_provider_error())?
             .get(&code_hash)
             .ok_or_else(|| {
                 ProviderError::TrieWitnessError(format!("Code not found for {code_hash}"))
@@ -443,7 +536,7 @@ where
     }
 
     fn bytecodes(&self) -> Vec<Bytecode> {
-        self.codes.values().cloned().collect()
+        self.codes.read().expect("codes lock poisoned").values().cloned().collect()
     }
 
     async fn ancestor_headers(&self) -> Result<Vec<Header>, RpcDbError> {
