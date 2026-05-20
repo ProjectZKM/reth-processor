@@ -22,6 +22,7 @@ latest_proof.json
 # Ziren ELF files
 elf
 stdin.bin
+vk.bin
 
 **.csv
 
