@@ -48,10 +48,10 @@ primitives = { path = "./crates/primitives" }
 provider = { path = "./crates/provider" }
 
 # Ziren
-zkm-build = { git = "https://github.com/ProjectZKM/Ziren" }
-zkm-core-executor = { git = "https://github.com/ProjectZKM/Ziren" }
-zkm-prover = { git = "https://github.com/ProjectZKM/Ziren" }
-zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren" }
+zkm-build = { git = "https://github.com/ProjectZKM/Ziren", tag = "v1.2.7" }
+zkm-core-executor = { git = "https://github.com/ProjectZKM/Ziren", tag = "v1.2.7" }
+zkm-prover = { git = "https://github.com/ProjectZKM/Ziren", tag = "v1.2.7" }
+zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren", tag = "v1.2.7" }
 
 # zkm-build = { path = "../Ziren/crates/build" }
 # zkm-core-executor = { path = "../Ziren/crates/core/executor" }
@@ -188,7 +188,7 @@ op-alloy-rpc-types = { git = "https://github.com/ziren-patches/op-alloy", branch
 # op-alloy-network = { path = "../patch/op-alloy/crates/network" }
 # op-alloy-rpc-types = { path = "../patch/op-alloy/crates/rpc-types" }
 
-kzg-rs = { git = "https://github.com/ziren-patches/kzg-rs", branch = "ziren" }
+kzg-rs = { git = "https://github.com/ziren-patches/kzg-rs", tag = "patch-0.2.7-ziren-1.2.7" }
 
 [workspace.lints]
 rust.missing_debug_implementations = "warn"
@@ -200,7 +200,7 @@ rustdoc.all = "warn"
 [patch.crates-io]
 # Precompile patches
 sha2 = { git = "https://github.com/ziren-patches/RustCrypto-hashes", branch = "patch-sha2-0.10.9", package = "sha2" }
-bn = { git = "https://github.com/ziren-patches/bn", branch = "patch-0.6.0", package = "substrate-bn" }
-k256 = { git = "https://github.com/ziren-patches/elliptic-curves", branch = "patch-k256-0.13.4" }
-p256 = { git = "https://github.com/ziren-patches/elliptic-curves", branch = "patch-p256-0.13.2" }
-alloy-primitives-v1-4-1 = { git = "https://github.com/ziren-patches/core.git", package = "alloy-primitives", branch = "patch-alloy-primitives-1.4.1" }
+bn = { git = "https://github.com/ziren-patches/bn", tag = "patch-0.6.0-ziren-1.2.7", package = "substrate-bn" }
+k256 = { git = "https://github.com/ziren-patches/elliptic-curves", tag = "patch-k256-0.13.4-ziren-1.2.7" }
+p256 = { git = "https://github.com/ziren-patches/elliptic-curves", tag = "patch-p256-0.13.2-ziren-1.2.7" }
+alloy-primitives-v1-4-1 = { git = "https://github.com/ziren-patches/core.git", package = "alloy-primitives", tag = "patch-alloy-primitives-1.4.1-ziren-1.2.7" }
