@@ -41,6 +41,12 @@ pub struct Args {
     #[clap(long, default_value_t = 1)]
     pub prefetch_depth: usize,
 
+    /// How many blocks to prepare (fetch + witness + native execution) at
+    /// once.  The provider generates `debug_executionWitness` on demand, so a
+    /// slow one blocks everything behind it when prepares are serial.
+    #[clap(long, default_value_t = 2)]
+    pub prepare_concurrency: usize,
+
     /// Skip a block when it is more than this many blocks behind the newest
     /// header seen (0 = never skip: prove every block the stream delivers).
     #[clap(long, default_value_t = 0)]
