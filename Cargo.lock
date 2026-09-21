@@ -46,7 +46,7 @@ checksum = "b169f7a6d4742236a0a00c541b845991d0ac43e546831af1249753ab4c3aa3a0"
 dependencies = [
  "cfg-if",
  "cipher",
- "cpufeatures",
+ "cpufeatures 0.2.17",
 ]
 
 [[package]]
@@ -361,7 +361,7 @@ dependencies = [
  "serde",
  "sha3",
  "tiny-keccak",
- "zkm-zkvm 1.2.5",
+ "zkm-zkvm",
 ]
 
 [[package]]
@@ -1457,6 +1457,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "blake3"
+version = "1.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d9e454fc11f76977dc803893aff6304ed33d6a26efae8696573bea74baa27ae"
+dependencies = [
+ "arrayvec",
+ "cc",
+ "cfg-if",
+ "constant_time_eq 0.4.2",
+ "cpufeatures 0.3.1",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1498,7 +1511,7 @@ dependencies = [
  "pairing 0.23.0",
  "rand_core 0.6.4",
  "subtle",
- "zkm-lib 1.2.5",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -1868,7 +1881,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bb320cac8a0750d7f25280aa97b09c26edfe161164238ecbbb31092b079e735"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "proptest",
  "serde_core",
 ]
@@ -1912,6 +1925,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
+name = "constant_time_eq"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
+
+[[package]]
 name = "convert_case"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1941,6 +1960,15 @@ name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "cpufeatures"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566"
 dependencies = [
  "libc",
 ]
@@ -2076,7 +2104,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fb8b7c4503de7d6ae7b42ab72a5a59857b4c937ec27a3d4539dba95b5ab2be"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "curve25519-dalek-derive",
  "fiat-crypto",
  "rustc_version 0.4.1",
@@ -3089,6 +3117,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
+name = "filetime"
+version = "0.2.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c287a33c7f0a620c38e641e7f60827713987b3c0f26e8ddc9462cc69cf75759"
+dependencies = [
+ "cfg-if",
+ "libc",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3309,12 +3347,6 @@ checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
 dependencies = [
  "byteorder",
 ]
-
-[[package]]
-name = "gcd"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d758ba1b47b00caf47f24925c0074ecb20d6dfcffe7f6d53395c0465674841a"
 
 [[package]]
 name = "generic-array"
@@ -4365,7 +4397,7 @@ dependencies = [
  "serdect",
  "sha2",
  "signature",
- "zkm-lib 1.2.5",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -4374,7 +4406,7 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
 dependencies = [
- "cpufeatures",
+ "cpufeatures 0.2.17",
 ]
 
 [[package]]
@@ -4848,7 +4880,6 @@ checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
  "num-traits",
- "rand 0.8.5",
 ]
 
 [[package]]
@@ -4968,18 +4999,6 @@ name = "number_prefix"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
-
-[[package]]
-name = "nums"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf3c74f925fb8cfc49a8022f2afce48a0683b70f9e439885594e84c5edbf5b01"
-dependencies = [
- "num-bigint 0.4.6",
- "num-integer",
- "num-traits",
- "rand 0.8.5",
-]
 
 [[package]]
 name = "nybbles"
@@ -5200,7 +5219,7 @@ dependencies = [
  "hex",
  "primeorder",
  "sha2",
- "zkm-lib 1.2.5",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -5208,8 +5227,8 @@ name = "p3-air"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
+ "p3-field",
+ "p3-matrix",
  "tracing",
 ]
 
@@ -5219,10 +5238,10 @@ version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "num-bigint 0.4.6",
- "p3-field 0.5.1",
- "p3-poseidon2 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-poseidon2",
+ "p3-symmetric",
+ "p3-util",
  "paste",
  "rand 0.10.2",
  "serde",
@@ -5233,11 +5252,11 @@ name = "p3-challenger"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
- "p3-field 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-monty-31 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-maybe-rayon",
+ "p3-monty-31",
+ "p3-symmetric",
+ "p3-util",
  "tracing",
 ]
 
@@ -5249,12 +5268,12 @@ dependencies = [
  "itertools 0.14.0",
  "p3-challenger",
  "p3-commit",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
+ "p3-dft",
+ "p3-field",
  "p3-fri",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-util",
  "serde",
  "thiserror 2.0.17",
  "tracing",
@@ -5267,26 +5286,13 @@ source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d4
 dependencies = [
  "itertools 0.14.0",
  "p3-challenger",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
+ "p3-dft",
+ "p3-field",
  "p3-interpolation",
- "p3-matrix 0.5.1",
+ "p3-matrix",
  "p3-multilinear-util",
- "p3-util 0.5.1",
+ "p3-util",
  "serde",
-]
-
-[[package]]
-name = "p3-dft"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "itertools 0.13.0",
- "p3-field 0.1.0",
- "p3-matrix 0.1.0",
- "p3-maybe-rayon 0.1.0",
- "p3-util 0.1.0",
- "tracing",
 ]
 
 [[package]]
@@ -5295,40 +5301,23 @@ version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-util",
  "spin 0.10.1",
  "tracing",
 ]
 
 [[package]]
 name = "p3-field"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "itertools 0.13.0",
- "num-bigint 0.4.6",
- "num-integer",
- "num-traits",
- "nums",
- "p3-maybe-rayon 0.1.0",
- "p3-util 0.1.0",
- "rand 0.8.5",
- "serde",
- "tracing",
-]
-
-[[package]]
-name = "p3-field"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-maybe-rayon",
+ "p3-util",
  "paste",
  "rand 0.10.2",
  "serde",
@@ -5343,12 +5332,12 @@ dependencies = [
  "itertools 0.14.0",
  "p3-challenger",
  "p3-commit",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
+ "p3-dft",
+ "p3-field",
  "p3-interpolation",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-util",
  "rand 0.10.2",
  "serde",
  "spin 0.10.1",
@@ -5361,10 +5350,10 @@ name = "p3-interpolation"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-util",
 ]
 
 [[package]]
@@ -5372,8 +5361,8 @@ name = "p3-keccak"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-symmetric",
+ "p3-util",
  "tiny-keccak",
 ]
 
@@ -5383,26 +5372,12 @@ version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-air",
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-util",
  "rand 0.10.2",
  "tracing",
-]
-
-[[package]]
-name = "p3-koala-bear"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "p3-field 0.1.0",
- "p3-mds 0.1.0",
- "p3-monty-31 0.1.0",
- "p3-poseidon2 0.1.0",
- "p3-symmetric 0.1.0",
- "rand 0.8.5",
- "serde",
 ]
 
 [[package]]
@@ -5411,28 +5386,13 @@ version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-challenger",
- "p3-field 0.5.1",
- "p3-mds 0.5.1",
- "p3-monty-31 0.5.1",
+ "p3-field",
+ "p3-mds",
+ "p3-monty-31",
  "p3-poseidon1",
- "p3-poseidon2 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-poseidon2",
+ "p3-symmetric",
  "rand 0.10.2",
-]
-
-[[package]]
-name = "p3-matrix"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "itertools 0.13.0",
- "p3-field 0.1.0",
- "p3-maybe-rayon 0.1.0",
- "p3-util 0.1.0",
- "rand 0.8.5",
- "serde",
- "tracing",
- "transpose",
 ]
 
 [[package]]
@@ -5441,18 +5401,13 @@ version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
- "p3-field 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-maybe-rayon",
+ "p3-util",
  "rand 0.10.2",
  "serde",
  "tracing",
 ]
-
-[[package]]
-name = "p3-maybe-rayon"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
 
 [[package]]
 name = "p3-maybe-rayon"
@@ -5464,27 +5419,13 @@ dependencies = [
 
 [[package]]
 name = "p3-mds"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "itertools 0.13.0",
- "p3-dft 0.1.0",
- "p3-field 0.1.0",
- "p3-matrix 0.1.0",
- "p3-symmetric 0.1.0",
- "p3-util 0.1.0",
- "rand 0.8.5",
-]
-
-[[package]]
-name = "p3-mds"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-dft",
+ "p3-field",
+ "p3-symmetric",
+ "p3-util",
  "rand 0.10.2",
 ]
 
@@ -5495,11 +5436,11 @@ source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d4
 dependencies = [
  "itertools 0.14.0",
  "p3-commit",
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-symmetric",
+ "p3-util",
  "rand 0.10.2",
  "serde",
  "thiserror 2.0.17",
@@ -5514,39 +5455,17 @@ dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
  "p3-challenger",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-mds 0.5.1",
+ "p3-dft",
+ "p3-field",
+ "p3-matrix",
+ "p3-mds",
  "p3-poseidon1",
- "p3-poseidon2 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-poseidon2",
+ "p3-symmetric",
+ "p3-util",
  "paste",
  "rand 0.10.2",
  "serde",
-]
-
-[[package]]
-name = "p3-monty-31"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "itertools 0.13.0",
- "num-bigint 0.4.6",
- "p3-dft 0.1.0",
- "p3-field 0.1.0",
- "p3-matrix 0.1.0",
- "p3-maybe-rayon 0.1.0",
- "p3-mds 0.1.0",
- "p3-poseidon2 0.1.0",
- "p3-symmetric 0.1.0",
- "p3-util 0.1.0",
- "rand 0.8.5",
- "serde",
- "serde_json",
- "tracing",
- "transpose",
 ]
 
 [[package]]
@@ -5556,15 +5475,15 @@ source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d4
 dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-mds 0.5.1",
+ "p3-dft",
+ "p3-field",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-mds",
  "p3-poseidon1",
- "p3-poseidon2 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-poseidon2",
+ "p3-symmetric",
+ "p3-util",
  "paste",
  "rand 0.10.2",
  "serde",
@@ -5578,10 +5497,10 @@ version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-util",
  "rand 0.10.2",
  "serde",
  "tracing",
@@ -5592,22 +5511,9 @@ name = "p3-poseidon1"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
- "p3-field 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-field",
+ "p3-symmetric",
  "rand 0.10.2",
-]
-
-[[package]]
-name = "p3-poseidon2"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "gcd",
- "p3-field 0.1.0",
- "p3-mds 0.1.0",
- "p3-symmetric 0.1.0",
- "rand 0.8.5",
- "serde",
 ]
 
 [[package]]
@@ -5615,21 +5521,11 @@ name = "p3-poseidon2"
 version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
- "p3-field 0.5.1",
- "p3-mds 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-mds",
+ "p3-symmetric",
+ "p3-util",
  "rand 0.10.2",
-]
-
-[[package]]
-name = "p3-symmetric"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "itertools 0.13.0",
- "p3-field 0.1.0",
- "serde",
 ]
 
 [[package]]
@@ -5638,8 +5534,8 @@ version = "0.5.1"
 source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
- "p3-field 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-util",
  "serde",
 ]
 
@@ -5652,22 +5548,13 @@ dependencies = [
  "p3-air",
  "p3-challenger",
  "p3-commit",
- "p3-field 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-util 0.5.1",
+ "p3-field",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-util",
  "serde",
  "thiserror 2.0.17",
  "tracing",
-]
-
-[[package]]
-name = "p3-util"
-version = "0.1.0"
-source = "git+https://github.com/ProjectZKM/Plonky3#faa24ca4597eebeecbf71b194b71c7d1a99b3f01"
-dependencies = [
- "lock_api",
- "serde",
 ]
 
 [[package]]
@@ -8158,7 +8045,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest 0.10.7",
 ]
 
@@ -8168,7 +8055,7 @@ version = "0.10.9"
 source = "git+https://github.com/ziren-patches/RustCrypto-hashes?branch=patch-sha2-0.10.9#dbfdbd088ac7b55e03c0b9eb192278efe35d67dc"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest 0.10.7",
 ]
 
@@ -8444,7 +8331,7 @@ dependencies = [
  "num-bigint 0.4.6",
  "rand 0.8.5",
  "rustc-hex",
- "zkm-lib 1.2.5",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -8595,6 +8482,17 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "tar"
+version = "0.4.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840"
+dependencies = [
+ "filetime",
+ "libc",
+ "xattr",
+]
 
 [[package]]
 name = "tempfile"
@@ -10050,6 +9948,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "xattr"
+version = "1.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32e45ad4206f6d2479085147f02bc2ef834ac85886624a23575ae137c8aa8156"
+dependencies = [
+ "libc",
+ "rustix 1.1.2",
+]
+
+[[package]]
 name = "yaml-rust"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10257,10 +10165,10 @@ dependencies = [
  "nohash-hasher",
  "num",
  "num_enum",
- "p3-field 0.5.1",
- "p3-koala-bear 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-field",
+ "p3-koala-bear",
+ "p3-maybe-rayon",
+ "p3-symmetric",
  "rand 0.8.5",
  "rayon-scan",
  "rustc-hash 2.1.1",
@@ -10278,7 +10186,7 @@ dependencies = [
  "zkm-core-jit",
  "zkm-curves",
  "zkm-pcs",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
 ]
 
 [[package]]
@@ -10290,8 +10198,8 @@ dependencies = [
  "libc",
  "memfd",
  "memmap2 0.9.11",
- "p3-field 0.5.1",
- "p3-koala-bear 0.5.1",
+ "p3-field",
+ "p3-koala-bear",
  "serde",
  "thiserror 1.0.69",
  "tracing",
@@ -10315,14 +10223,14 @@ dependencies = [
  "p256",
  "p3-air",
  "p3-challenger",
- "p3-field 0.5.1",
+ "p3-field",
  "p3-keccak-air",
- "p3-koala-bear 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-poseidon2 0.5.1",
+ "p3-koala-bear",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-poseidon2",
  "p3-uni-stark",
- "p3-util 0.5.1",
+ "p3-util",
  "rand 0.8.5",
  "rayon",
  "rayon-scan",
@@ -10345,7 +10253,7 @@ dependencies = [
  "zkm-curves",
  "zkm-derive",
  "zkm-pcs",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
 ]
 
 [[package]]
@@ -10378,14 +10286,14 @@ dependencies = [
  "k256",
  "num",
  "p256",
- "p3-field 0.5.1",
+ "p3-field",
  "serde",
  "snowbridge-amcl",
  "thiserror 1.0.69",
  "tracing",
  "typenum",
  "zkm-poly",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
 ]
 
 [[package]]
@@ -10399,19 +10307,6 @@ dependencies = [
 
 [[package]]
 name = "zkm-lib"
-version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
-dependencies = [
- "bincode",
- "cfg-if",
- "elliptic-curve",
- "serde",
- "sha2",
- "zkm-primitives 1.2.5",
-]
-
-[[package]]
-name = "zkm-lib"
 version = "2.0.0"
 dependencies = [
  "bincode",
@@ -10419,7 +10314,7 @@ dependencies = [
  "elliptic-curve",
  "serde",
  "sha2",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
 ]
 
 [[package]]
@@ -10436,21 +10331,21 @@ dependencies = [
  "p3-challenger",
  "p3-circle",
  "p3-commit",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
+ "p3-dft",
+ "p3-field",
  "p3-fri",
  "p3-keccak",
- "p3-koala-bear 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
- "p3-mds 0.5.1",
+ "p3-koala-bear",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-mds",
  "p3-merkle-tree",
  "p3-mersenne-31",
  "p3-multilinear-util",
- "p3-poseidon2 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-poseidon2",
+ "p3-symmetric",
  "p3-uni-stark",
- "p3-util 0.5.1",
+ "p3-util",
  "rand 0.8.5",
  "rayon",
  "rayon-scan",
@@ -10464,8 +10359,8 @@ dependencies = [
  "tracing-subscriber",
  "zkm-derive",
  "zkm-poly",
- "zkm-primitives 2.0.0",
- "zkm-zkvm 2.0.0",
+ "zkm-primitives",
+ "zkm-zkvm",
 ]
 
 [[package]]
@@ -10473,25 +10368,7 @@ name = "zkm-poly"
 version = "2.0.0"
 dependencies = [
  "itertools 0.13.0",
- "p3-field 0.5.1",
-]
-
-[[package]]
-name = "zkm-primitives"
-version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
-dependencies = [
- "bincode",
- "hex",
- "lazy_static",
- "num-bigint 0.4.6",
- "p3-field 0.1.0",
- "p3-koala-bear 0.1.0",
- "p3-monty-31 0.1.0",
- "p3-poseidon2 0.1.0",
- "p3-symmetric 0.1.0",
- "serde",
- "sha2",
+ "p3-field",
 ]
 
 [[package]]
@@ -10499,16 +10376,18 @@ name = "zkm-primitives"
 version = "2.0.0"
 dependencies = [
  "bincode",
+ "blake3",
  "hex",
  "lazy_static",
  "num-bigint 0.4.6",
- "p3-field 0.5.1",
- "p3-koala-bear 0.5.1",
- "p3-monty-31 0.5.1",
- "p3-poseidon2 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-field",
+ "p3-koala-bear",
+ "p3-monty-31",
+ "p3-poseidon2",
+ "p3-symmetric",
  "serde",
  "sha2",
+ "tracing",
 ]
 
 [[package]]
@@ -10528,12 +10407,12 @@ dependencies = [
  "p3-bn254",
  "p3-challenger",
  "p3-commit",
- "p3-field 0.5.1",
- "p3-koala-bear 0.5.1",
- "p3-matrix 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-field",
+ "p3-koala-bear",
+ "p3-matrix",
+ "p3-symmetric",
  "p3-uni-stark",
- "p3-util 0.5.1",
+ "p3-util",
  "rayon",
  "serde",
  "serde_json",
@@ -10543,7 +10422,7 @@ dependencies = [
  "zkm-core-executor",
  "zkm-core-machine",
  "zkm-pcs",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
  "zkm-recursion-circuit",
  "zkm-recursion-compiler",
  "zkm-recursion-core",
@@ -10562,13 +10441,13 @@ dependencies = [
  "p3-bn254",
  "p3-challenger",
  "p3-commit",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
+ "p3-dft",
+ "p3-field",
  "p3-fri",
- "p3-koala-bear 0.5.1",
- "p3-matrix 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-koala-bear",
+ "p3-matrix",
+ "p3-symmetric",
+ "p3-util",
  "rand 0.8.5",
  "rayon",
  "serde",
@@ -10577,7 +10456,7 @@ dependencies = [
  "zkm-core-machine",
  "zkm-derive",
  "zkm-pcs",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
  "zkm-recursion-compiler",
  "zkm-recursion-core",
  "zkm-recursion-gnark-ffi",
@@ -10590,15 +10469,15 @@ dependencies = [
  "backtrace",
  "itertools 0.13.0",
  "p3-bn254",
- "p3-field 0.5.1",
- "p3-koala-bear 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-field",
+ "p3-koala-bear",
+ "p3-symmetric",
  "serde",
  "tracing",
  "vec_map",
  "zkm-core-machine",
  "zkm-pcs",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
  "zkm-recursion-core",
  "zkm-recursion-derive",
 ]
@@ -10616,17 +10495,17 @@ dependencies = [
  "p3-bn254",
  "p3-challenger",
  "p3-commit",
- "p3-dft 0.5.1",
- "p3-field 0.5.1",
+ "p3-dft",
+ "p3-field",
  "p3-fri",
- "p3-koala-bear 0.5.1",
- "p3-matrix 0.5.1",
- "p3-maybe-rayon 0.5.1",
+ "p3-koala-bear",
+ "p3-matrix",
+ "p3-maybe-rayon",
  "p3-merkle-tree",
- "p3-monty-31 0.5.1",
- "p3-poseidon2 0.5.1",
- "p3-symmetric 0.5.1",
- "p3-util 0.5.1",
+ "p3-monty-31",
+ "p3-poseidon2",
+ "p3-symmetric",
+ "p3-util",
  "rand 0.8.5",
  "serde",
  "sha2",
@@ -10638,7 +10517,7 @@ dependencies = [
  "zkm-core-machine",
  "zkm-derive",
  "zkm-pcs",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
 ]
 
 [[package]]
@@ -10660,9 +10539,9 @@ dependencies = [
  "hex",
  "log",
  "num-bigint 0.4.6",
- "p3-field 0.5.1",
- "p3-koala-bear 0.5.1",
- "p3-symmetric 0.5.1",
+ "p3-field",
+ "p3-koala-bear",
+ "p3-symmetric",
  "serde",
  "serde_json",
  "sha2",
@@ -10677,8 +10556,8 @@ name = "zkm-recursion-jit"
 version = "2.0.0"
 dependencies = [
  "dynasmrt",
- "p3-field 0.5.1",
- "p3-koala-bear 0.5.1",
+ "p3-field",
+ "p3-koala-bear",
  "thiserror 1.0.69",
  "tracing",
  "zkm-recursion-core",
@@ -10689,13 +10568,13 @@ name = "zkm-sdk"
 version = "2.0.0"
 dependencies = [
  "alloy-primitives",
- "alloy-signer",
  "anyhow",
  "async-trait",
  "bincode",
  "cfg-if",
  "dirs",
  "ethers",
+ "flate2",
  "futures",
  "hashbrown 0.14.5",
  "hex",
@@ -10703,15 +10582,16 @@ dependencies = [
  "itertools 0.13.0",
  "log",
  "num-bigint 0.4.6",
- "p3-field 0.5.1",
+ "p3-field",
  "p3-fri",
- "p3-koala-bear 0.5.1",
+ "p3-koala-bear",
  "prost 0.11.9",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
  "strum 0.26.3",
  "strum_macros 0.26.4",
+ "tar",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
@@ -10726,25 +10606,8 @@ dependencies = [
  "zkm-core-machine",
  "zkm-cuda",
  "zkm-pcs",
- "zkm-primitives 2.0.0",
+ "zkm-primitives",
  "zkm-prover",
-]
-
-[[package]]
-name = "zkm-zkvm"
-version = "1.2.5"
-source = "git+https://github.com/ProjectZKM/Ziren#25646e2b0f03c74ddaac9939271bc1d4e35a6861"
-dependencies = [
- "bincode",
- "cfg-if",
- "getrandom 0.2.16",
- "lazy_static",
- "libm",
- "rand 0.8.5",
- "serde",
- "sha2",
- "zkm-lib 1.2.5",
- "zkm-primitives 1.2.5",
 ]
 
 [[package]]
@@ -10755,11 +10618,12 @@ dependencies = [
  "cfg-if",
  "getrandom 0.2.16",
  "lazy_static",
+ "libm",
  "rand 0.8.5",
  "serde",
  "sha2",
- "zkm-lib 2.0.0",
- "zkm-primitives 2.0.0",
+ "zkm-lib",
+ "zkm-primitives",
 ]
 
 [[package]]
