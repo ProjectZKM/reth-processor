@@ -55,6 +55,7 @@ zkm-build = { git = "https://github.com/ProjectZKM/Ziren", branch = "feat/upgrad
 zkm-core-executor = { git = "https://github.com/ProjectZKM/Ziren", branch = "feat/upgrade-plonky3" }
 zkm-prover = { git = "https://github.com/ProjectZKM/Ziren", branch = "feat/upgrade-plonky3" }
 zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren", branch = "feat/upgrade-plonky3" }
+zkm-verifier = { git = "https://github.com/ProjectZKM/Ziren", branch = "feat/upgrade-plonky3" }
 
 # reth
 reth-primitives-traits = { git = "https://github.com/paradigmxyz/reth", tag = "v1.9.3", default-features = false }
@@ -167,4 +168,5 @@ zkm-recursion-core = { path = "../Ziren/crates/recursion/core" }
 zkm-recursion-derive = { path = "../Ziren/crates/recursion/derive" }
 zkm-recursion-gnark-ffi = { path = "../Ziren/crates/recursion/gnark-ffi" }
 zkm-sdk = { path = "../Ziren/crates/sdk" }
+zkm-verifier = { path = "../Ziren/crates/verifier" }
 zkm-zkvm = { path = "../Ziren/crates/zkvm/entrypoint" }

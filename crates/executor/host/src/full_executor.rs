@@ -124,6 +124,34 @@ pub trait BlockExecutor<C: ExecutorComponents> {
                 .map(Duration::from_millis)
                 .unwrap_or_else(|| proving_start.elapsed());
             let proof_bytes = bincode::serialize(&proof_with_cycles.0.proof).unwrap();
+            // Published form: one Merkle multiproof per WHIR tree instead of a
+            // path per query.  The verifier expands it back before verifying,
+            // so neither the proof system nor any verifying key changes; the
+            // encoder checks the STARK and round-trips its output before
+            // returning it, and on any failure the per-path bytes go out.
+            // OFF BY DEFAULT for the same reason as the zstd framing below:
+            // the eth-proofs verifier must decode it first.
+            let proof_bytes = if std::env::var("ZIREN_PUBLISH_MULTIPROOF").is_ok_and(|v| v == "1")
+            {
+                let started = std::time::Instant::now();
+                match zkm_verifier::encode_published(&proof_bytes) {
+                    Ok(published) => {
+                        info!(
+                            "published proof in multiproof form: {} -> {} bytes in {} ms",
+                            proof_bytes.len(),
+                            published.len(),
+                            started.elapsed().as_millis()
+                        );
+                        published
+                    }
+                    Err(err) => {
+                        warn!("multiproof form failed ({err}); publishing per-path proof");
+                        proof_bytes
+                    }
+                }
+            } else {
+                proof_bytes
+            };
             // Transport framing for the published artifact.  eth-proofs stores
             // exactly these bytes and the only thing that decodes them is our
             // own wasm verifier, so the wire format is ours to choose.
