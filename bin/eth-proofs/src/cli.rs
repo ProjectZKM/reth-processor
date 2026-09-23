@@ -71,6 +71,11 @@ pub struct Args {
     /// Moongate server endpoint.
     #[clap(long, env)]
     pub moongate_endpoint: Option<String>,
+
+    /// Directory under which every block's client input is written
+    /// (`input/<chain id>/<block>.bin`), for replay by other provers.
+    #[clap(long, env)]
+    pub input_cache_dir: Option<std::path::PathBuf>,
 }
 
 impl Args {
@@ -80,7 +85,7 @@ impl Args {
             genesis: Genesis::Mainnet,
             rpc_url: Some(self.http_rpc_url.clone()),
             debug_rpc_url: Some(self.debug_http_rpc_url.clone()),
-            cache_dir: None,
+            cache_dir: self.input_cache_dir.clone(),
             custom_beneficiary: None,
             prove_mode: (!self.execute_only).then_some(ZKMProofKind::Compressed),
             opcode_tracking: false,
