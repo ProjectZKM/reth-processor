@@ -504,7 +504,15 @@ fn try_load_input_from_cache<P: NodePrimitives + DeserializeOwned>(
     if cache_path.exists() {
         // TODO: prune the cache if invalid instead
         let mut cache_file = std::fs::File::open(cache_path)?;
-        let client_input = bincode::deserialize_from(&mut cache_file)?;
+        let client_input = match bincode::deserialize_from(&mut cache_file) {
+            Ok(input) => input,
+            Err(err) => {
+                tracing::warn!(
+                    "cached input for block {block_number} is unreadable ({err}); refetching"
+                );
+                return Ok(None);
+            }
+        };
 
         Ok(Some(client_input))
     } else {

@@ -8,11 +8,11 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "execution-witness")]
 mod execution_witness;
 
-/// Module containing MPT code adapted from `zeth`.
-mod mpt;
 /// Arena-backed trie built from a preorder RLP witness stream (the guest's form).
 mod arena;
-pub use arena::{witness_stream, ArenaState, ArenaTrie, StorageWitness, WitnessState};
+/// Module containing MPT code adapted from `zeth`.
+mod mpt;
+pub use arena::{input_bytes, witness_stream, ArenaState, ArenaTrie, StorageWitness, WitnessState};
 pub use mpt::Error;
 use mpt::{
     extend_trie_from_proof, mpt_from_proof, node_from_digest, parse_proof, proofs_to_tries,

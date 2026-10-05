@@ -262,7 +262,7 @@ dependencies = [
 [[package]]
 name = "alloy-primitives"
 version = "1.4.1"
-source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.4.1#59313700f710f1373a5b4cdc05c51dc3227d8064"
+source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.4.1-hasher#8846a1c3b6f6595020ab4189034a6f463ffbffc7"
 dependencies = [
  "alloy-rlp",
  "bytes",
@@ -932,8 +932,10 @@ version = "0.8.0"
 source = "git+https://github.com/ziren-patches/bls12_381?branch=patch-0.8.0#bcf9397426410acc171ad625416b508dc913be8e"
 dependencies = [
  "cfg-if",
+ "digest 0.10.7",
  "ff",
  "group",
+ "hex",
  "pairing",
  "rand_core 0.6.4",
  "subtle",
@@ -1662,6 +1664,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-rpc-types",
  "bincode",
+ "bls12_381",
  "itertools 0.13.0",
  "kzg-rs",
  "mpt",
@@ -1682,7 +1685,9 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "substrate-bn",
  "thiserror 1.0.69",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -2326,7 +2331,7 @@ dependencies = [
 [[package]]
 name = "p3-challenger"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-maybe-rayon",
@@ -2339,7 +2344,7 @@ dependencies = [
 [[package]]
 name = "p3-dft"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-field",
@@ -2353,7 +2358,7 @@ dependencies = [
 [[package]]
 name = "p3-field"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
@@ -2368,7 +2373,7 @@ dependencies = [
 [[package]]
 name = "p3-koala-bear"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-challenger",
  "p3-field",
@@ -2383,7 +2388,7 @@ dependencies = [
 [[package]]
 name = "p3-matrix"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-field",
@@ -2397,12 +2402,12 @@ dependencies = [
 [[package]]
 name = "p3-maybe-rayon"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 
 [[package]]
 name = "p3-mds"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-dft",
  "p3-field",
@@ -2414,7 +2419,7 @@ dependencies = [
 [[package]]
 name = "p3-monty-31"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
@@ -2437,7 +2442,7 @@ dependencies = [
 [[package]]
 name = "p3-poseidon1"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-symmetric",
@@ -2447,7 +2452,7 @@ dependencies = [
 [[package]]
 name = "p3-poseidon2"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-mds",
@@ -2459,7 +2464,7 @@ dependencies = [
 [[package]]
 name = "p3-symmetric"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-field",
@@ -2470,7 +2475,7 @@ dependencies = [
 [[package]]
 name = "p3-util"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "serde",
  "transpose",
@@ -3496,8 +3501,7 @@ dependencies = [
 [[package]]
 name = "ruint"
 version = "1.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a68df0380e5c9d20ce49534f292a36a7514ae21350726efe1865bdb1fa91d278"
+source = "git+https://github.com/ziren-patches/ruint?branch=patch-1.17.0#adb0d8622402e15c4a214402b0f9c147e24295a4"
 dependencies = [
  "alloy-rlp",
  "ark-ff 0.3.0",
@@ -3519,13 +3523,13 @@ dependencies = [
  "serde_core",
  "valuable",
  "zeroize",
+ "zkm-lib",
 ]
 
 [[package]]
 name = "ruint-macro"
 version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48fd7bd8a6377e15ad9d42a8ec25371b94ddc67abe7c8b9127bec79bebaaae18"
+source = "git+https://github.com/ziren-patches/ruint?branch=patch-1.17.0#adb0d8622402e15c4a214402b0f9c147e24295a4"
 
 [[package]]
 name = "rustc-hash"
@@ -3911,7 +3915,7 @@ dependencies = [
 [[package]]
 name = "substrate-bn"
 version = "0.6.0"
-source = "git+https://github.com/ziren-patches/bn?branch=patch-0.6.0#aba71380457d798039111e6cc0fdf2e0718c6766"
+source = "git+https://github.com/ziren-patches/bn?branch=patch-0.6.0#0dfeeb1b7bfc21941b6e4964d678abd094a54a6f"
 dependencies = [
  "bytemuck",
  "byteorder",

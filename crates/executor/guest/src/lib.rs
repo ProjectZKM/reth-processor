@@ -7,6 +7,7 @@ mod utils;
 pub mod custom;
 pub mod error;
 pub mod executor;
+pub mod precompiles;
 pub mod tracking;
 
 mod into_primitives;

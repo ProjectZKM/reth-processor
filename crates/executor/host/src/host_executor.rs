@@ -239,7 +239,11 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             // guest builds its arena tries from it, hash-checking every node.
             parent_state: state.to_witness_state(),
             code_hashes: rpc_db.bytecodes().iter().map(|b| b.hash_slow()).collect(),
-            bytecodes: rpc_db.bytecodes(),
+            bytecodes: rpc_db
+                .bytecodes()
+                .iter()
+                .map(|b| guest_executor::io::RawCode::new(b.original_byte_slice()))
+                .collect(),
             genesis,
             custom_beneficiary,
             opcode_tracking,

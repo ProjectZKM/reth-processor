@@ -117,7 +117,7 @@ fn main() {
     println!(
         "bytecodes: {} ({} code bytes), txs {}",
         input.bytecodes.len(),
-        input.bytecodes.iter().map(|b| b.len()).sum::<usize>(),
+        input.bytecodes.iter().map(|b| b.code().len()).sum::<usize>(),
         input.current_block.body.transactions.len()
     );
     let t = Instant::now();

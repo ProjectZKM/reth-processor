@@ -113,8 +113,10 @@ async fn main() -> eyre::Result<()> {
             // Prepares in flight, oldest first: the front is the next block to
             // hand to the prover, so results stay in block order however the
             // fetches interleave.
-            let mut inflight: std::collections::VecDeque<(u64, tokio::task::JoinHandle<eyre::Result<_>>)> =
-                std::collections::VecDeque::with_capacity(concurrency);
+            let mut inflight: std::collections::VecDeque<(
+                u64,
+                tokio::task::JoinHandle<eyre::Result<_>>,
+            )> = std::collections::VecDeque::with_capacity(concurrency);
             // The subscription is only a wake-up: it says how far the chain
             // is.  Which block to prepare next is a cursor that advances by
             // `block_interval`, so falling behind never skips a block — the

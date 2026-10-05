@@ -26,15 +26,16 @@ log = { version = "0.4", features = ["max_level_off", "release_max_level_off"] }
 tracing = { version = "0.1", features = ["max_level_off", "release_max_level_off"] }
 
 [patch.crates-io]
+ruint = { git = "https://github.com/ziren-patches/ruint", branch = "patch-1.17.0" }
 # Precompile patches
 sha2 = { git = "https://github.com/ziren-patches/RustCrypto-hashes", branch = "patch-sha2-0.10.9", package = "sha2" }
 bn = { git = "https://github.com/ziren-patches/bn", branch = "patch-0.6.0", package = "substrate-bn" }
 k256 = { git = "https://github.com/ziren-patches/elliptic-curves", branch = "patch-k256-0.13.4" }
 p256 = { git = "https://github.com/ziren-patches/elliptic-curves", branch = "patch-p256-0.13.2" }
-alloy-primitives-v1-4-1 = { git = "https://github.com/ziren-patches/core.git", package = "alloy-primitives", branch = "patch-alloy-primitives-1.4.1" }
+alloy-primitives-v1-4-1 = { git = "https://github.com/ziren-patches/core.git", package = "alloy-primitives", branch = "patch-alloy-primitives-1.4.1-hasher" }
 
 # The guest's zkvm crates come from the canonical Ziren checkout next to this
-# repo (feat/upgrade-plonky3), the same way ziren-gpu consumes it: every
+# repo (feat/upgrade-plonky3), the same way the GPU prover consumes it: every
 # zkm-zkvm / zkm-lib in the graph (the precompile patches declare their own,
 # unbranched, which cargo cannot redirect to another branch of the same URL)
 # resolves to this one source, so there is exactly one global allocator and

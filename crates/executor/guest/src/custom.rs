@@ -18,7 +18,10 @@ use revm::{
         interpreter_types::{Jumps, LoopControl},
         Interpreter, InterpreterTypes,
     },
-    precompile::{Crypto, PrecompileError, PrecompileSpecId, Precompiles},
+    precompile::{
+        bls12_381::{G1Point, G1PointScalar, G2Point, G2PointScalar},
+        Crypto, PrecompileError, PrecompileSpecId, Precompiles,
+    },
     Context, Inspector,
 };
 use revm_primitives::{hardfork::SpecId, Address};
@@ -169,6 +172,51 @@ impl Default for CustomCrypto {
 }
 
 impl Crypto for CustomCrypto {
+    fn bn254_g1_add(&self, p1: &[u8], p2: &[u8]) -> Result<[u8; 64], PrecompileError> {
+        crate::precompiles::bn254_g1_add(p1, p2)
+    }
+
+    fn bn254_g1_mul(&self, point: &[u8], scalar: &[u8]) -> Result<[u8; 64], PrecompileError> {
+        crate::precompiles::bn254_g1_mul(point, scalar)
+    }
+
+    fn bls12_381_g1_add(&self, a: G1Point, b: G1Point) -> Result<[u8; 96], PrecompileError> {
+        crate::precompiles::bls12_381_g1_add(a, b)
+    }
+
+    fn bls12_381_g1_msm(
+        &self,
+        pairs: &mut dyn Iterator<Item = Result<G1PointScalar, PrecompileError>>,
+    ) -> Result<[u8; 96], PrecompileError> {
+        crate::precompiles::bls12_381_g1_msm(pairs)
+    }
+
+    fn bls12_381_g2_add(&self, a: G2Point, b: G2Point) -> Result<[u8; 192], PrecompileError> {
+        crate::precompiles::bls12_381_g2_add(a, b)
+    }
+
+    fn bls12_381_g2_msm(
+        &self,
+        pairs: &mut dyn Iterator<Item = Result<G2PointScalar, PrecompileError>>,
+    ) -> Result<[u8; 192], PrecompileError> {
+        crate::precompiles::bls12_381_g2_msm(pairs)
+    }
+
+    fn bls12_381_pairing_check(
+        &self,
+        pairs: &[(G1Point, G2Point)],
+    ) -> Result<bool, PrecompileError> {
+        crate::precompiles::bls12_381_pairing_check(pairs)
+    }
+
+    fn bls12_381_fp_to_g1(&self, fp: &[u8; 48]) -> Result<[u8; 96], PrecompileError> {
+        crate::precompiles::bls12_381_fp_to_g1(fp)
+    }
+
+    fn bls12_381_fp2_to_g2(&self, fp2: ([u8; 48], [u8; 48])) -> Result<[u8; 192], PrecompileError> {
+        crate::precompiles::bls12_381_fp2_to_g2(fp2)
+    }
+
     fn verify_kzg_proof(
         &self,
         z: &[u8; 32],

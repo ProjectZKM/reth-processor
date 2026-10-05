@@ -69,7 +69,7 @@ pub struct StorageWitness {
 /// run and bincode's borrowed slices of it can be kept as they are: the
 /// witness streams are 6-7 MB per reth block, and copying them out of the
 /// input buffer cost ~7 M cycles.  Off the zkVM the bytes are copied.
-fn input_bytes<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Bytes, D::Error> {
+pub fn input_bytes<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Bytes, D::Error> {
     struct V;
     impl<'de> serde::de::Visitor<'de> for V {
         type Value = Bytes;
@@ -203,10 +203,7 @@ impl Ref {
     fn encode(&self, out: &mut Vec<u8>) {
         match self {
             Ref::Bytes(b) => out.extend_from_slice(b),
-            Ref::Digest(d) => {
-                out.push(alloy_rlp::EMPTY_STRING_CODE + 32);
-                out.extend_from_slice(d.as_slice());
-            }
+            Ref::Digest(d) => push_digest(out, &d.0),
         }
     }
     fn length(&self) -> usize {
@@ -214,6 +211,28 @@ impl Ref {
             Ref::Bytes(b) => b.len(),
             Ref::Digest(_) => 33,
         }
+    }
+}
+
+/// Appends the RLP of a 32-byte string, `0xa0` then `digest`, to `out`.
+///
+/// The digest is moved as eight unaligned words rather than byte by byte:
+/// a reth block's state-root pass writes ~100 K of them.  The writes are
+/// sound because `out` has room for 33 bytes after the reservation, every
+/// word of `digest` is in bounds, and the length is set to what was written.
+#[inline]
+fn push_digest(out: &mut Vec<u8>, digest: &[u8; 32]) {
+    out.reserve(33);
+    let len = out.len();
+    unsafe {
+        let dst = out.as_mut_ptr().add(len);
+        *dst = DIGEST_STRING_CODE;
+        let src = digest.as_ptr().cast::<u32>();
+        let dst = dst.add(1).cast::<u32>();
+        for w in 0..8 {
+            dst.add(w).write_unaligned(src.add(w).read_unaligned());
+        }
+        out.set_len(len + 33);
     }
 }
 
@@ -249,6 +268,10 @@ struct Stream<'a> {
 }
 
 impl<'a> Stream<'a> {
+    #[inline]
+    fn peek(&self) -> Option<u8> {
+        self.buf.get(self.pos).copied()
+    }
     fn byte(&mut self) -> Result<u8, Error> {
         let b = *self.buf.get(self.pos).ok_or(Error::WitnessFormat("truncated stream"))?;
         self.pos += 1;
@@ -271,10 +294,8 @@ impl<'a> Stream<'a> {
     }
     fn node(&mut self) -> Result<&'a [u8], Error> {
         let len = self.varint()?;
-        let bytes = self
-            .buf
-            .get(self.pos..self.pos + len)
-            .ok_or(Error::WitnessFormat("truncated node"))?;
+        let bytes =
+            self.buf.get(self.pos..self.pos + len).ok_or(Error::WitnessFormat("truncated node"))?;
         self.pos += len;
         Ok(bytes)
     }
@@ -293,20 +314,12 @@ fn take_item<'a>(
         Some(&alloy_rlp::EMPTY_STRING_CODE) => {
             let (whole, rest) = buf.split_at(1);
             *buf = rest;
-            return Ok((
-                alloy_rlp::Header { list: false, payload_length: 0 },
-                &whole[1..],
-                whole,
-            ));
+            return Ok((alloy_rlp::Header { list: false, payload_length: 0 }, &whole[1..], whole));
         }
         Some(&DIGEST_STRING_CODE) if buf.len() >= 33 => {
             let (whole, rest) = buf.split_at(33);
             *buf = rest;
-            return Ok((
-                alloy_rlp::Header { list: false, payload_length: 32 },
-                &whole[1..],
-                whole,
-            ));
+            return Ok((alloy_rlp::Header { list: false, payload_length: 32 }, &whole[1..], whole));
         }
         _ => {}
     }
@@ -459,13 +472,30 @@ impl ArenaTrie {
             };
         }
         // A branch: 16 children then an empty value.  The children are walked
-        // in order because `child` may consume the next stream entry.
+        // in order because `child` may consume the next stream entry.  The
+        // two common children, absent (`0x80`) and a digest (`0xa0 ..`) whose
+        // stream entry is itself a digest, are handled here without the
+        // generic item split and the two calls behind it: they are ~95% of
+        // the ~160 K branch children of a reth block.
         let mut children = [NONE; 16];
         children[0] = self.child(h0, p0, w0, s)?;
         children[1] = self.child(h1, p1, w1, s)?;
         for slot in children[2..].iter_mut() {
-            let (h, item, whole) = take_item(&mut rest)?;
-            *slot = self.child(h, item, whole, s)?;
+            match rest.first() {
+                Some(&alloy_rlp::EMPTY_STRING_CODE) => {
+                    rest = &rest[1..];
+                }
+                Some(&DIGEST_STRING_CODE) if rest.len() >= 33 && s.peek() == Some(TAG_DIGEST) => {
+                    s.pos += 1;
+                    let off = rest.as_ptr() as usize + 1 - self.stream.as_ptr() as usize;
+                    *slot = DIGEST_BIT | off as NodeId;
+                    rest = &rest[33..];
+                }
+                _ => {
+                    let (h, item, whole) = take_item(&mut rest)?;
+                    *slot = self.child(h, item, whole, s)?;
+                }
+            }
         }
         let (h, value, _) = take_item(&mut rest)?;
         if h.list || !value.is_empty() {
@@ -548,8 +578,14 @@ impl ArenaTrie {
         if Self::is_digest(id) {
             return Ref::Digest(self.digest_at(id));
         }
-        if let Some(r) = &self.refs[id as usize] {
-            return r.clone();
+        self.ensure_reference(id);
+        self.refs[id as usize].clone().expect("the reference is cached")
+    }
+
+    /// Caches the reference of the node `id` (not a digest slot).
+    fn ensure_reference(&mut self, id: NodeId) {
+        if self.refs[id as usize].is_some() {
+            return;
         }
         let r = match &self.nodes[id as usize] {
             Node::Null => Ref::Bytes(vec![alloy_rlp::EMPTY_STRING_CODE]),
@@ -563,36 +599,32 @@ impl ArenaTrie {
                 }
             }
         };
-        self.refs[id as usize] = Some(r.clone());
-        r
+        self.refs[id as usize] = Some(r);
     }
 
-    /// The length of node `id`'s reference, without materialising it.
-    #[inline]
     fn reference_length(&mut self, id: NodeId) -> usize {
         if Self::is_digest(id) {
             return 33;
         }
-        self.reference(id).length()
+        self.ensure_reference(id);
+        self.refs[id as usize].as_ref().expect("the reference is cached").length()
     }
 
-    /// Append node `id`'s reference to `out`.  A digest slot's bytes are
-    /// copied from the witness stream, so no `B256` is built for it — the
-    /// state root re-references every unmodified sibling of every node it
-    /// rehashes, which made that copy one of the stage's larger costs.
+    /// Writes the RLP reference of `id` to `out`: a digest slot's 32 bytes
+    /// from the witness stream, else the cached (or now computed) reference.
     fn write_reference(&mut self, id: NodeId, out: &mut Vec<u8>) {
         if Self::is_digest(id) {
             let off = (id & !DIGEST_BIT) as usize;
-            out.push(DIGEST_STRING_CODE);
-            out.extend_from_slice(&self.stream[off..off + 32]);
+            let digest: &[u8; 32] = self.stream[off..off + 32].try_into().expect("32 bytes");
+            push_digest(out, digest);
             return;
         }
-        self.reference(id).encode(out);
+        self.ensure_reference(id);
+        self.refs[id as usize].as_ref().expect("the reference is cached").encode(out);
     }
 
-    /// The RLP encoding of node `id` (children as references).
     fn encode(&mut self, id: NodeId) -> Vec<u8> {
-        match self.nodes[id as usize].clone() {
+        match &self.nodes[id as usize] {
             Node::Null => vec![alloy_rlp::EMPTY_STRING_CODE],
             Node::Digest(d) => d.to_rlp(),
             Node::Leaf(prefix, value) => {
@@ -604,9 +636,14 @@ impl ArenaTrie {
                 out
             }
             Node::Extension(prefix, child) => {
-                let payload = prefix.as_slice().length() + self.reference_length(child);
+                let child = *child;
+                let prefix_len = prefix.as_slice().length();
+                let payload = prefix_len + self.reference_length(child);
                 let mut out = Vec::with_capacity(payload + 3);
                 alloy_rlp::Header { list: true, payload_length: payload }.encode(&mut out);
+                let Node::Extension(prefix, _) = &self.nodes[id as usize] else {
+                    unreachable!("the node is an extension")
+                };
                 prefix.as_slice().encode(&mut out);
                 self.write_reference(child, &mut out);
                 out
@@ -615,6 +652,7 @@ impl ArenaTrie {
                 // Two passes over the children, sizing then writing, so a
                 // digest slot never has to become a `Ref`: its 32 bytes are
                 // copied straight from the witness stream into the output.
+                let children = *children;
                 let mut payload = 1; // the empty value
                 for child in children.iter() {
                     payload += if *child == NONE { 1 } else { self.reference_length(*child) };
@@ -652,7 +690,12 @@ impl ArenaTrie {
         self.push(Node::Leaf(to_encoded_path(nibs, true), value), None)
     }
 
-    fn insert_internal(&mut self, id: NodeId, key_nibs: &[u8], value: Vec<u8>) -> Result<bool, Error> {
+    fn insert_internal(
+        &mut self,
+        id: NodeId,
+        key_nibs: &[u8],
+        value: Vec<u8>,
+    ) -> Result<bool, Error> {
         if Self::is_digest(id) {
             return Err(Error::NodeNotResolved(self.digest_at(id)));
         }
@@ -715,7 +758,10 @@ impl ArenaTrie {
                     let mut children = [NONE; 16];
                     children[self_nibs[common_len] as usize] = if split < self_nibs.len() {
                         self.push(
-                            Node::Extension(to_encoded_path(&self_nibs[split..], false), existing_child),
+                            Node::Extension(
+                                to_encoded_path(&self_nibs[split..], false),
+                                existing_child,
+                            ),
                             None,
                         )
                     } else {
@@ -781,24 +827,24 @@ impl ArenaTrie {
                         // extension to the digest
                         Node::Extension(to_encoded_path(&[index as u8], false), orphan)
                     } else {
-                    match mem::replace(&mut self.nodes[orphan as usize], Node::Null) {
-                        Node::Leaf(prefix, value) => {
-                            let mut nibs = vec![index as u8];
-                            nibs.extend(prefix_nibs(&prefix));
-                            Node::Leaf(to_encoded_path(&nibs, true), value)
+                        match mem::replace(&mut self.nodes[orphan as usize], Node::Null) {
+                            Node::Leaf(prefix, value) => {
+                                let mut nibs = vec![index as u8];
+                                nibs.extend(prefix_nibs(&prefix));
+                                Node::Leaf(to_encoded_path(&nibs, true), value)
+                            }
+                            Node::Extension(prefix, child) => {
+                                let mut nibs = vec![index as u8];
+                                nibs.extend(prefix_nibs(&prefix));
+                                Node::Extension(to_encoded_path(&nibs, false), child)
+                            }
+                            node @ (Node::Branch(_) | Node::Digest(_)) => {
+                                // the orphan keeps its slot; the branch becomes an extension to it
+                                self.nodes[orphan as usize] = node;
+                                Node::Extension(to_encoded_path(&[index as u8], false), orphan)
+                            }
+                            Node::Null => unreachable!(),
                         }
-                        Node::Extension(prefix, child) => {
-                            let mut nibs = vec![index as u8];
-                            nibs.extend(prefix_nibs(&prefix));
-                            Node::Extension(to_encoded_path(&nibs, false), child)
-                        }
-                        node @ (Node::Branch(_) | Node::Digest(_)) => {
-                            // the orphan keeps its slot; the branch becomes an extension to it
-                            self.nodes[orphan as usize] = node;
-                            Node::Extension(to_encoded_path(&[index as u8], false), orphan)
-                        }
-                        Node::Null => unreachable!(),
-                    }
                     };
                     self.nodes[id as usize] = new;
                 }
@@ -849,8 +895,8 @@ impl ArenaTrie {
 fn eq32(a: &[u8; 32], b: &[u8; 32]) -> bool {
     let mut acc = 0u32;
     for i in (0..32).step_by(4) {
-        acc |= u32::from_ne_bytes([a[i], a[i + 1], a[i + 2], a[i + 3]])
-            ^ u32::from_ne_bytes([b[i], b[i + 1], b[i + 2], b[i + 3]]);
+        acc |= u32::from_ne_bytes([a[i], a[i + 1], a[i + 2], a[i + 3]]) ^
+            u32::from_ne_bytes([b[i], b[i + 1], b[i + 2], b[i + 3]]);
     }
     acc == 0
 }
@@ -894,7 +940,8 @@ impl ArenaState {
     /// `witness.state_root`, the storage roots against the account leaves.
     pub fn from_witness(witness: &WitnessState) -> Result<Self, Error> {
         let state_trie = ArenaTrie::from_stream(witness.state_root, witness.state_nodes.clone())?;
-        let mut storage_tries = HashMap::with_capacity_and_hasher(witness.storage.len(), Default::default());
+        let mut storage_tries =
+            HashMap::with_capacity_and_hasher(witness.storage.len(), Default::default());
         for StorageWitness { hashed_address, root, nodes } in &witness.storage {
             let expected = state_trie
                 .get_rlp::<TrieAccount>(hashed_address.as_slice())?
@@ -913,7 +960,11 @@ impl ArenaState {
     }
 
     /// The storage slot `hashed_slot` of `hashed_address`, if set.
-    pub fn storage(&self, hashed_address: &B256, hashed_slot: &[u8]) -> Result<Option<U256>, Error> {
+    pub fn storage(
+        &self,
+        hashed_address: &B256,
+        hashed_slot: &[u8],
+    ) -> Result<Option<U256>, Error> {
         let trie = self
             .storage_tries
             .get(hashed_address)
@@ -931,7 +982,8 @@ impl ArenaState {
                         .get(hashed_address)
                         .cloned()
                         .unwrap_or_else(|| HashedStorage::new(false));
-                    let storage_root = self.storage_root_after_update(*hashed_address, state_storage);
+                    let storage_root =
+                        self.storage_root_after_update(*hashed_address, state_storage);
 
                     if account.is_empty() && storage_root == EMPTY_ROOT_HASH {
                         self.state_trie.delete(hashed_address.as_slice()).unwrap();
@@ -955,7 +1007,11 @@ impl ArenaState {
         }
     }
 
-    fn storage_root_after_update(&mut self, hashed_address: B256, state_storage: &HashedStorage) -> B256 {
+    fn storage_root_after_update(
+        &mut self,
+        hashed_address: B256,
+        state_storage: &HashedStorage,
+    ) -> B256 {
         if state_storage.is_empty() {
             if let Some(storage_trie) = self.storage_tries.get_mut(&hashed_address) {
                 return storage_trie.hash();
@@ -1153,7 +1209,9 @@ mod tests {
             let addr = key(i);
             let mut storage = MptNode::default();
             for j in 0..(i % 9) {
-                storage.insert_rlp(key(1000 + i * 10 + j).as_slice(), U256::from(rng(&mut s))).unwrap();
+                storage
+                    .insert_rlp(key(1000 + i * 10 + j).as_slice(), U256::from(rng(&mut s)))
+                    .unwrap();
             }
             let account = TrieAccount {
                 nonce: i,
@@ -1178,7 +1236,11 @@ mod tests {
                 1 => {
                     post.accounts.insert(
                         addr,
-                        Some(Account { nonce: i + 1, balance: U256::from(rng(&mut s)), bytecode_hash: Some(key(5000 + i)) }),
+                        Some(Account {
+                            nonce: i + 1,
+                            balance: U256::from(rng(&mut s)),
+                            bytecode_hash: Some(key(5000 + i)),
+                        }),
                     );
                     let mut hs = HashedStorage::new(false);
                     for j in 0..6u64 {

@@ -1506,8 +1506,10 @@ version = "0.8.0"
 source = "git+https://github.com/ziren-patches/bls12_381?branch=patch-0.8.0#bcf9397426410acc171ad625416b508dc913be8e"
 dependencies = [
  "cfg-if",
+ "digest 0.10.7",
  "ff 0.13.1",
  "group 0.13.0",
+ "hex",
  "pairing 0.23.0",
  "rand_core 0.6.4",
  "subtle",
@@ -3467,6 +3469,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-rpc-types",
  "bincode",
+ "bls12_381 0.8.0",
  "itertools 0.13.0",
  "kzg-rs",
  "mpt",
@@ -3493,7 +3496,9 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "substrate-bn",
  "thiserror 1.0.69",
+ "zkm-lib",
 ]
 
 [[package]]
@@ -3801,7 +3806,6 @@ dependencies = [
  "zkm-core-executor",
  "zkm-prover",
  "zkm-sdk",
- "zstd 0.13.3",
 ]
 
 [[package]]
@@ -5225,7 +5229,7 @@ dependencies = [
 [[package]]
 name = "p3-air"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-matrix",
@@ -5235,7 +5239,7 @@ dependencies = [
 [[package]]
 name = "p3-bn254"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "num-bigint 0.4.6",
  "p3-field",
@@ -5250,7 +5254,7 @@ dependencies = [
 [[package]]
 name = "p3-challenger"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-maybe-rayon",
@@ -5263,7 +5267,7 @@ dependencies = [
 [[package]]
 name = "p3-circle"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-challenger",
@@ -5282,7 +5286,7 @@ dependencies = [
 [[package]]
 name = "p3-commit"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-challenger",
@@ -5298,7 +5302,7 @@ dependencies = [
 [[package]]
 name = "p3-dft"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-field",
@@ -5312,7 +5316,7 @@ dependencies = [
 [[package]]
 name = "p3-field"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
@@ -5327,7 +5331,7 @@ dependencies = [
 [[package]]
 name = "p3-fri"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-challenger",
@@ -5348,7 +5352,7 @@ dependencies = [
 [[package]]
 name = "p3-interpolation"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-matrix",
@@ -5359,7 +5363,7 @@ dependencies = [
 [[package]]
 name = "p3-keccak"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-symmetric",
  "p3-util",
@@ -5369,7 +5373,7 @@ dependencies = [
 [[package]]
 name = "p3-keccak-air"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-air",
  "p3-field",
@@ -5383,7 +5387,7 @@ dependencies = [
 [[package]]
 name = "p3-koala-bear"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-challenger",
  "p3-field",
@@ -5398,7 +5402,7 @@ dependencies = [
 [[package]]
 name = "p3-matrix"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-field",
@@ -5412,7 +5416,7 @@ dependencies = [
 [[package]]
 name = "p3-maybe-rayon"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "rayon",
 ]
@@ -5420,7 +5424,7 @@ dependencies = [
 [[package]]
 name = "p3-mds"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-dft",
  "p3-field",
@@ -5432,7 +5436,7 @@ dependencies = [
 [[package]]
 name = "p3-merkle-tree"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-commit",
@@ -5450,7 +5454,7 @@ dependencies = [
 [[package]]
 name = "p3-mersenne-31"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
@@ -5471,7 +5475,7 @@ dependencies = [
 [[package]]
 name = "p3-monty-31"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "num-bigint 0.4.6",
@@ -5494,7 +5498,7 @@ dependencies = [
 [[package]]
 name = "p3-multilinear-util"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-field",
@@ -5509,7 +5513,7 @@ dependencies = [
 [[package]]
 name = "p3-poseidon1"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-symmetric",
@@ -5519,7 +5523,7 @@ dependencies = [
 [[package]]
 name = "p3-poseidon2"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "p3-field",
  "p3-mds",
@@ -5531,7 +5535,7 @@ dependencies = [
 [[package]]
 name = "p3-symmetric"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-field",
@@ -5542,7 +5546,7 @@ dependencies = [
 [[package]]
 name = "p3-uni-stark"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "itertools 0.14.0",
  "p3-air",
@@ -5560,7 +5564,7 @@ dependencies = [
 [[package]]
 name = "p3-util"
 version = "0.5.1"
-source = "git+https://github.com/ProjectZKM/Plonky3?branch=zkm%2Fwhir-pcs#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
+source = "git+https://github.com/ProjectZKM/Plonky3?rev=4dd0d47a8176503fbaa7293c9f0e3b20004e16b2#4dd0d47a8176503fbaa7293c9f0e3b20004e16b2"
 dependencies = [
  "serde",
  "transpose",
@@ -10338,10 +10342,8 @@ dependencies = [
  "p3-koala-bear",
  "p3-matrix",
  "p3-maybe-rayon",
- "p3-mds",
  "p3-merkle-tree",
  "p3-mersenne-31",
- "p3-multilinear-util",
  "p3-poseidon2",
  "p3-symmetric",
  "p3-uni-stark",
@@ -10427,7 +10429,6 @@ dependencies = [
  "zkm-recursion-compiler",
  "zkm-recursion-core",
  "zkm-recursion-gnark-ffi",
- "zkm-recursion-jit",
 ]
 
 [[package]]
@@ -10549,18 +10550,6 @@ dependencies = [
  "zkm-core-machine",
  "zkm-pcs",
  "zkm-recursion-compiler",
-]
-
-[[package]]
-name = "zkm-recursion-jit"
-version = "2.0.0"
-dependencies = [
- "dynasmrt",
- "p3-field",
- "p3-koala-bear",
- "thiserror 1.0.69",
- "tracing",
- "zkm-recursion-core",
 ]
 
 [[package]]
