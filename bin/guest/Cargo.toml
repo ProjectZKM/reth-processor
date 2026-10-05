@@ -27,7 +27,20 @@ tracing = { version = "0.1", features = ["max_level_off", "release_max_level_off
 
 [patch.crates-io]
 ruint = { git = "https://github.com/ziren-patches/ruint", branch = "patch-1.17.0" }
-# Precompile patches
+revm = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-bytecode = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-context = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-context-interface = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-database = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-database-interface = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-handler = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-inspector = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-interpreter = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-precompile = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-primitives = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+revm-state = { git = "https://github.com/ziren-patches/revm", branch = "patch-31.0.2-mips32" }
+# Precompile patches, and the revm workspace with its 32-bit interpreter
+# fast paths (gas, stack exchange, memory words).
 sha2 = { git = "https://github.com/ziren-patches/RustCrypto-hashes", branch = "patch-sha2-0.10.9", package = "sha2" }
 bn = { git = "https://github.com/ziren-patches/bn", branch = "patch-0.6.0", package = "substrate-bn" }
 k256 = { git = "https://github.com/ziren-patches/elliptic-curves", branch = "patch-k256-0.13.4" }
