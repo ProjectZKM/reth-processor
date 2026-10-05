@@ -24,8 +24,8 @@ use reth_trie::{HashedPostState, HashedStorage, TrieAccount, EMPTY_ROOT_HASH};
 use serde::{Deserialize, Serialize};
 
 use super::mpt::{
-    keccak, lcp, prefix_nibs, to_encoded_path, to_nibs, Error, MptNode, MptNodeData,
-    MptNodeReference, RlpBytes, EMPTY_ROOT,
+    keccak, lcp, prefix_nibs, to_encoded_path, Error, MptNode, MptNodeData, MptNodeReference,
+    RlpBytes, EMPTY_ROOT,
 };
 
 /// Stream tag: the referenced node is not part of the witness (stays a digest).
@@ -184,10 +184,11 @@ const NONE: NodeId = u32::MAX;
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Node {
     Null,
-    /// Compact-encoded path (as in the RLP) and the value.
-    Leaf(Vec<u8>, Vec<u8>),
+    /// Compact-encoded path (as in the RLP) and the value, both slices of
+    /// the witness stream for a node read from it.
+    Leaf(Bytes, Bytes),
     /// Compact-encoded path and the child.
-    Extension(Vec<u8>, NodeId),
+    Extension(Bytes, NodeId),
     Branch([NodeId; 16]),
     Digest(B256),
 }
@@ -431,6 +432,29 @@ impl ArenaTrie {
         }
     }
 
+    /// A child item already split off its node: absent and digest-of-digest
+    /// children are resolved without a call, the rest through `child`.
+    #[inline]
+    fn common_child(
+        &mut self,
+        header: alloy_rlp::Header,
+        payload: &[u8],
+        whole: &[u8],
+        s: &mut Stream<'_>,
+    ) -> Result<NodeId, Error> {
+        if !header.list {
+            if payload.is_empty() {
+                return Ok(NONE);
+            }
+            if payload.len() == 32 && s.peek() == Some(TAG_DIGEST) {
+                s.pos += 1;
+                let off = payload.as_ptr() as usize - self.stream.as_ptr() as usize;
+                return Ok(DIGEST_BIT | off as NodeId);
+            }
+        }
+        self.child(header, payload, whole, s)
+    }
+
     /// Decode one node item into the arena.
     fn decode_item(
         &mut self,
@@ -463,12 +487,14 @@ impl ArenaTrie {
                 if child == NONE {
                     return Err(Error::WitnessFormat("extension without child"));
                 }
-                Ok(self.push(Node::Extension(p0.to_vec(), child), Some(r)))
+                let prefix = self.stream.slice_ref(p0);
+                Ok(self.push(Node::Extension(prefix, child), Some(r)))
             } else {
                 if h1.list {
                     return Err(alloy_rlp::Error::UnexpectedList.into());
                 }
-                Ok(self.push(Node::Leaf(p0.to_vec(), p1.to_vec()), Some(r)))
+                let (prefix, value) = (self.stream.slice_ref(p0), self.stream.slice_ref(p1));
+                Ok(self.push(Node::Leaf(prefix, value), Some(r)))
             };
         }
         // A branch: 16 children then an empty value.  The children are walked
@@ -478,8 +504,8 @@ impl ArenaTrie {
         // generic item split and the two calls behind it: they are ~95% of
         // the ~160 K branch children of a reth block.
         let mut children = [NONE; 16];
-        children[0] = self.child(h0, p0, w0, s)?;
-        children[1] = self.child(h1, p1, w1, s)?;
+        children[0] = self.common_child(h0, p0, w0, s)?;
+        children[1] = self.common_child(h1, p1, w1, s)?;
         for slot in children[2..].iter_mut() {
             match rest.first() {
                 Some(&alloy_rlp::EMPTY_STRING_CODE) => {
@@ -511,7 +537,8 @@ impl ArenaTrie {
 
     /// The value stored under `key`, if any.
     pub fn get(&self, key: &[u8]) -> Result<Option<&[u8]>, Error> {
-        self.get_internal(self.root, &to_nibs(key))
+        let (nibs, n) = nibbles(key);
+        self.get_internal(self.root, &nibs[..n])
     }
 
     /// The RLP-decoded value stored under `key`, if any.
@@ -537,7 +564,7 @@ impl ArenaTrie {
             },
             Node::Leaf(prefix, value) => {
                 if strip_prefix_nibs(key_nibs, prefix) == Some(&[][..]) {
-                    Ok(Some(value))
+                    Ok(Some(&value[..]))
                 } else {
                     Ok(None)
                 }
@@ -628,31 +655,31 @@ impl ArenaTrie {
             Node::Null => vec![alloy_rlp::EMPTY_STRING_CODE],
             Node::Digest(d) => d.to_rlp(),
             Node::Leaf(prefix, value) => {
-                let payload = prefix.as_slice().length() + value.as_slice().length();
+                let payload = prefix[..].length() + value[..].length();
                 let mut out = Vec::with_capacity(payload + 3);
                 alloy_rlp::Header { list: true, payload_length: payload }.encode(&mut out);
-                prefix.as_slice().encode(&mut out);
-                value.as_slice().encode(&mut out);
+                prefix[..].encode(&mut out);
+                value[..].encode(&mut out);
                 out
             }
             Node::Extension(prefix, child) => {
                 let child = *child;
-                let prefix_len = prefix.as_slice().length();
+                let prefix_len = prefix[..].length();
                 let payload = prefix_len + self.reference_length(child);
                 let mut out = Vec::with_capacity(payload + 3);
                 alloy_rlp::Header { list: true, payload_length: payload }.encode(&mut out);
                 let Node::Extension(prefix, _) = &self.nodes[id as usize] else {
                     unreachable!("the node is an extension")
                 };
-                prefix.as_slice().encode(&mut out);
+                prefix[..].encode(&mut out);
                 self.write_reference(child, &mut out);
                 out
             }
             Node::Branch(children) => {
+                let children = *children;
                 // Two passes over the children, sizing then writing, so a
                 // digest slot never has to become a `Ref`: its 32 bytes are
                 // copied straight from the witness stream into the output.
-                let children = *children;
                 let mut payload = 1; // the empty value
                 for child in children.iter() {
                     payload += if *child == NONE { 1 } else { self.reference_length(*child) };
@@ -677,31 +704,33 @@ impl ArenaTrie {
     /// Insert or update `key`; `true` if the trie changed.
     pub fn insert(&mut self, key: &[u8], value: Vec<u8>) -> Result<bool, Error> {
         assert!(!value.is_empty(), "value must not be empty");
-        self.insert_internal(self.root, &to_nibs(key), value)
+        let (nibs, n) = nibbles(key);
+        self.insert_internal(self.root, &nibs[..n], value.into())
     }
 
     /// Insert or update `key` with the RLP encoding of `value`.
     pub fn insert_rlp(&mut self, key: &[u8], value: impl Encodable) -> Result<bool, Error> {
-        self.insert_internal(self.root, &to_nibs(key), value.to_rlp())
+        let (nibs, n) = nibbles(key);
+        self.insert_internal(self.root, &nibs[..n], value.to_rlp().into())
     }
 
     #[inline]
-    fn leaf(&mut self, nibs: &[u8], value: Vec<u8>) -> NodeId {
-        self.push(Node::Leaf(to_encoded_path(nibs, true), value), None)
+    fn leaf(&mut self, nibs: &[u8], value: Bytes) -> NodeId {
+        self.push(Node::Leaf(to_encoded_path(nibs, true).into(), value), None)
     }
 
     fn insert_internal(
         &mut self,
         id: NodeId,
         key_nibs: &[u8],
-        value: Vec<u8>,
+        value: Bytes,
     ) -> Result<bool, Error> {
         if Self::is_digest(id) {
             return Err(Error::NodeNotResolved(self.digest_at(id)));
         }
         let changed = match &mut self.nodes[id as usize] {
             Node::Null => {
-                self.nodes[id as usize] = Node::Leaf(to_encoded_path(key_nibs, true), value);
+                self.nodes[id as usize] = Node::Leaf(to_encoded_path(key_nibs, true).into(), value);
                 true
             }
             Node::Branch(children) => {
@@ -759,7 +788,7 @@ impl ArenaTrie {
                     children[self_nibs[common_len] as usize] = if split < self_nibs.len() {
                         self.push(
                             Node::Extension(
-                                to_encoded_path(&self_nibs[split..], false),
+                                to_encoded_path(&self_nibs[split..], false).into(),
                                 existing_child,
                             ),
                             None,
@@ -787,13 +816,15 @@ impl ArenaTrie {
             self.nodes[id as usize] = Node::Branch(children);
         } else {
             let branch = self.push(Node::Branch(children), None);
-            self.nodes[id as usize] = Node::Extension(to_encoded_path(prefix_nibs, false), branch);
+            self.nodes[id as usize] =
+                Node::Extension(to_encoded_path(prefix_nibs, false).into(), branch);
         }
     }
 
     /// Delete `key`; `true` if it was present.
     pub fn delete(&mut self, key: &[u8]) -> Result<bool, Error> {
-        self.delete_internal(self.root, &to_nibs(key))
+        let (nibs, n) = nibbles(key);
+        self.delete_internal(self.root, &nibs[..n])
     }
 
     fn delete_internal(&mut self, id: NodeId, key_nibs: &[u8]) -> Result<bool, Error> {
@@ -825,23 +856,26 @@ impl ArenaTrie {
                     let new = if Self::is_digest(orphan) {
                         // a digest slot has no node: the branch becomes an
                         // extension to the digest
-                        Node::Extension(to_encoded_path(&[index as u8], false), orphan)
+                        Node::Extension(to_encoded_path(&[index as u8], false).into(), orphan)
                     } else {
                         match mem::replace(&mut self.nodes[orphan as usize], Node::Null) {
                             Node::Leaf(prefix, value) => {
                                 let mut nibs = vec![index as u8];
                                 nibs.extend(prefix_nibs(&prefix));
-                                Node::Leaf(to_encoded_path(&nibs, true), value)
+                                Node::Leaf(to_encoded_path(&nibs, true).into(), value)
                             }
                             Node::Extension(prefix, child) => {
                                 let mut nibs = vec![index as u8];
                                 nibs.extend(prefix_nibs(&prefix));
-                                Node::Extension(to_encoded_path(&nibs, false), child)
+                                Node::Extension(to_encoded_path(&nibs, false).into(), child)
                             }
                             node @ (Node::Branch(_) | Node::Digest(_)) => {
                                 // the orphan keeps its slot; the branch becomes an extension to it
                                 self.nodes[orphan as usize] = node;
-                                Node::Extension(to_encoded_path(&[index as u8], false), orphan)
+                                Node::Extension(
+                                    to_encoded_path(&[index as u8], false).into(),
+                                    orphan,
+                                )
                             }
                             Node::Null => unreachable!(),
                         }
@@ -867,11 +901,11 @@ impl ArenaTrie {
                     Node::Null => Some(Node::Null),
                     Node::Leaf(prefix, value) => {
                         self_nibs.extend(prefix_nibs(&prefix));
-                        Some(Node::Leaf(to_encoded_path(&self_nibs, true), value))
+                        Some(Node::Leaf(to_encoded_path(&self_nibs, true).into(), value))
                     }
                     Node::Extension(prefix, grandchild) => {
                         self_nibs.extend(prefix_nibs(&prefix));
-                        Some(Node::Extension(to_encoded_path(&self_nibs, false), grandchild))
+                        Some(Node::Extension(to_encoded_path(&self_nibs, false).into(), grandchild))
                     }
                     node @ (Node::Branch(_) | Node::Digest(_)) => {
                         self.nodes[child as usize] = node;
@@ -899,6 +933,22 @@ fn eq32(a: &[u8; 32], b: &[u8; 32]) -> bool {
             u32::from_ne_bytes([b[i], b[i + 1], b[i + 2], b[i + 3]]);
     }
     acc == 0
+}
+
+/// The nibbles of `key` in a stack buffer, and how many: keys are 32-byte
+/// hashes, so the buffer needs no allocation.
+///
+/// # Panics
+/// Panics if `key` is longer than 64 bytes.
+#[inline]
+fn nibbles(key: &[u8]) -> ([u8; 128], usize) {
+    assert!(key.len() <= 64, "key too long");
+    let mut out = [0u8; 128];
+    for (i, b) in key.iter().enumerate() {
+        out[2 * i] = b >> 4;
+        out[2 * i + 1] = b & 0xf;
+    }
+    (out, 2 * key.len())
 }
 
 /// `key_nibs` with a compact-encoded `prefix` stripped off the front, without
@@ -974,14 +1024,12 @@ impl ArenaState {
 
     /// Apply the post-state diff (same semantics as `EthereumState::update`).
     pub fn update(&mut self, post_state: &HashedPostState) {
+        let no_storage = HashedStorage::new(false);
         for (hashed_address, account) in post_state.accounts.iter() {
             match account {
                 Some(account) => {
-                    let state_storage = &post_state
-                        .storages
-                        .get(hashed_address)
-                        .cloned()
-                        .unwrap_or_else(|| HashedStorage::new(false));
+                    let state_storage =
+                        post_state.storages.get(hashed_address).unwrap_or(&no_storage);
                     let storage_root =
                         self.storage_root_after_update(*hashed_address, state_storage);
 
