@@ -3560,7 +3560,7 @@ dependencies = [
 [[package]]
 name = "ruint"
 version = "1.17.0"
-source = "git+https://github.com/ziren-patches/ruint?branch=patch-1.17.0#adb0d8622402e15c4a214402b0f9c147e24295a4"
+source = "git+https://github.com/ziren-patches/ruint?branch=patch-1.17.0#572265b0666ae9b1ce749b0f0ce051108ec7253c"
 dependencies = [
  "alloy-rlp",
  "ark-ff 0.3.0",
@@ -3588,7 +3588,7 @@ dependencies = [
 [[package]]
 name = "ruint-macro"
 version = "1.2.1"
-source = "git+https://github.com/ziren-patches/ruint?branch=patch-1.17.0#adb0d8622402e15c4a214402b0f9c147e24295a4"
+source = "git+https://github.com/ziren-patches/ruint?branch=patch-1.17.0#572265b0666ae9b1ce749b0f0ce051108ec7253c"
 
 [[package]]
 name = "rustc-hash"
