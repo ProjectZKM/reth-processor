@@ -1663,6 +1663,7 @@ dependencies = [
  "alloy-network",
  "alloy-primitives",
  "alloy-rpc-types",
+ "aurora-engine-modexp",
  "bincode",
  "bls12_381",
  "itertools 0.13.0",

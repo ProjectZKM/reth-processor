@@ -10,6 +10,10 @@ use bls12_381::{
     fp::Fp, fp2::Fp2, hash_to_curve::MapToCurve, multi_miller_loop, G1Affine, G1Projective,
     G2Affine, G2Prepared, G2Projective, Gt, Scalar,
 };
+use kzg_rs::{
+    kzg_proof::{safe_g1_affine_from_bytes, safe_scalar_affine_from_bytes},
+    Bytes32, Bytes48, KzgSettings,
+};
 use revm::precompile::PrecompileError;
 
 const FP: usize = 48;
@@ -403,4 +407,157 @@ pub fn bls12_381_fp2_to_g2(c: ([u8; FP], [u8; FP])) -> Result<[u8; 4 * FP], Prec
     let u = fp2(&c.0, &c.1)?;
     let p = G2Projective::map_to_curve(&u).clear_h();
     Ok(encode_g2(&G2Affine::from(p)))
+}
+
+// ---------------------------------------------------------------------------
+// KZG point evaluation
+
+/// The pairing check of the KZG point-evaluation precompile with its two
+/// G2 arguments fixed, so both are prepared once:
+///
+/// `e(P - y·G1, G2) · e(-π, τ·G2 - z·G2) = 1`  is, by bilinearity,
+/// `e(P - y·G1 + z·π, G2) · e(-π, τ·G2) = 1`,
+///
+/// which moves the only scalar multiplication to G1, where it is one joint
+/// double-and-add over `y` and `z`, and leaves the G2 side constant.
+pub struct KzgVerifier {
+    g2: G2Prepared,
+    tau_g2: G2Prepared,
+}
+
+impl KzgVerifier {
+    pub fn new(settings: &KzgSettings) -> Self {
+        Self {
+            g2: G2Prepared::from(G2Affine::generator()),
+            tau_g2: G2Prepared::from(settings.g2_points[1]),
+        }
+    }
+
+    /// Whether `proof` opens `commitment` at `z` to `y`; the points are
+    /// decoded with kzg-rs's checks (canonical, on the curve, in the
+    /// subgroup), the scalars must be canonical.
+    pub fn verify(
+        &self,
+        z: &[u8; 32],
+        y: &[u8; 32],
+        commitment: &[u8; 48],
+        proof: &[u8; 48],
+    ) -> Result<bool, PrecompileError> {
+        let other = |err: kzg_rs::KzgError| PrecompileError::other(err.to_string());
+        let z = safe_scalar_affine_from_bytes(&Bytes32(*z)).map_err(other)?;
+        let y = safe_scalar_affine_from_bytes(&Bytes32(*y)).map_err(other)?;
+        let commitment = safe_g1_affine_from_bytes(&Bytes48(*commitment)).map_err(other)?;
+        let proof = safe_g1_affine_from_bytes(&Bytes48(*proof)).map_err(other)?;
+
+        let minus_g1 = -G1Affine::generator();
+        let a =
+            G1Affine::from(linear_combination(&minus_g1, &y, &proof, &z).add_mixed(&commitment));
+        let minus_proof = -proof;
+        let mut terms: Vec<(&G1Affine, &G2Prepared)> = Vec::with_capacity(2);
+        if !bool::from(a.is_identity()) {
+            terms.push((&a, &self.g2));
+        }
+        if !bool::from(minus_proof.is_identity()) {
+            terms.push((&minus_proof, &self.tau_g2));
+        }
+        if terms.is_empty() {
+            return Ok(true);
+        }
+        Ok(multi_miller_loop(&terms).final_exponentiation() == Gt::identity())
+    }
+}
+
+/// `s·a + t·b` by one double-and-add over both scalars (Straus), with
+/// `a + b` precomputed; nothing here is secret, so the walk is not
+/// constant-time.
+fn linear_combination(a: &G1Affine, s: &Scalar, b: &G1Affine, t: &Scalar) -> G1Projective {
+    let ab = G1Affine::from(G1Projective::from(*a).add_mixed(b));
+    let s = s.to_bytes();
+    let t = t.to_bytes();
+    let mut acc = G1Projective::identity();
+    let mut started = false;
+    for i in (0..256).rev() {
+        if started {
+            acc = acc.double();
+        }
+        let sb = (s[i / 8] >> (i % 8)) & 1 == 1;
+        let tb = (t[i / 8] >> (i % 8)) & 1 == 1;
+        match (sb, tb) {
+            (true, true) => acc = acc.add_mixed(&ab),
+            (true, false) => acc = acc.add_mixed(a),
+            (false, true) => acc = acc.add_mixed(b),
+            (false, false) => {}
+        }
+        started |= sb | tb;
+    }
+    acc
+}
+
+// ---------------------------------------------------------------------------
+// modexp
+
+/// `base^exp mod modulus` as big-endian bytes, at most `modulus.len()` of
+/// them.  Operands of up to 256 bits run as a square-and-multiply ladder on
+/// the uint256 multiplier; anything wider takes the generic implementation.
+pub fn modexp(base: &[u8], exp: &[u8], modulus: &[u8]) -> Vec<u8> {
+    #[cfg(target_os = "zkvm")]
+    if base.len() <= 32 && modulus.len() <= 32 {
+        return modexp256::modexp(base, exp, modulus);
+    }
+    aurora_engine_modexp::modexp(base, exp, modulus)
+}
+
+#[cfg(target_os = "zkvm")]
+mod modexp256 {
+    use zkm_lib::syscall_uint256_mulmod;
+
+    type Words = [u32; 8];
+
+    /// Big-endian bytes (at most 32) as little-endian words.
+    fn words(be: &[u8]) -> Words {
+        let mut padded = [0u8; 32];
+        padded[32 - be.len()..].copy_from_slice(be);
+        let mut w = [0u32; 8];
+        for (i, word) in w.iter_mut().enumerate() {
+            *word = u32::from_be_bytes(padded[28 - 4 * i..32 - 4 * i].try_into().expect("4 bytes"));
+        }
+        w
+    }
+
+    /// `(a · b) mod m` for `m ≠ 0`; the multiplier reads `b` and `m` as one
+    /// 16-word block.
+    fn mul_mod(a: &Words, b: &Words, m: &Words) -> Words {
+        let mut x = *a;
+        let mut bm = [0u32; 16];
+        bm[..8].copy_from_slice(b);
+        bm[8..].copy_from_slice(m);
+        unsafe { syscall_uint256_mulmod(&mut x, bm.as_ptr().cast()) };
+        x
+    }
+
+    pub fn modexp(base: &[u8], exp: &[u8], modulus: &[u8]) -> Vec<u8> {
+        let m = words(modulus);
+        if m == [0; 8] || m == [1, 0, 0, 0, 0, 0, 0, 0] {
+            return Vec::new();
+        }
+        let b = mul_mod(&words(base), &[1, 0, 0, 0, 0, 0, 0, 0], &m);
+        let mut r: Words = [1, 0, 0, 0, 0, 0, 0, 0];
+        let mut started = false;
+        for &byte in exp {
+            for j in (0..8).rev() {
+                if started {
+                    r = mul_mod(&r, &r, &m);
+                }
+                if (byte >> j) & 1 == 1 {
+                    r = mul_mod(&r, &b, &m);
+                    started = true;
+                }
+            }
+        }
+        let mut out = [0u8; 32];
+        for (i, word) in r.iter().enumerate() {
+            out[28 - 4 * i..32 - 4 * i].copy_from_slice(&word.to_be_bytes());
+        }
+        out[32 - modulus.len()..].to_vec()
+    }
 }

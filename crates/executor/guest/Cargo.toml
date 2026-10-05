@@ -53,6 +53,7 @@ op-alloy-rpc-types = { workspace = true, optional = true }
 
 kzg-rs.workspace = true
 bls12_381 = { git = "https://github.com/ziren-patches/bls12_381", branch = "patch-0.8.0", default-features = false, features = ["groups", "pairings", "alloc", "experimental"] }
+aurora-engine-modexp = "1.2.0"
 zkm-lib = { git = "https://github.com/ProjectZKM/Ziren" }
 bn = { git = "https://github.com/ziren-patches/bn", branch = "patch-0.6.0", package = "substrate-bn" }
 

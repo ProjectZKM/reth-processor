@@ -6,7 +6,7 @@
 //! configuring the custom CustomEvmConfig precompiles and instructions.
 
 use alloy_evm::{precompiles::PrecompilesMap, EthEvm};
-use kzg_rs::{Bytes32, Bytes48, KzgProof, KzgSettings};
+use kzg_rs::KzgSettings;
 use reth_evm::{eth::EthEvmBuilder, Database, EvmEnv, EvmFactory};
 use revm::{
     bytecode::opcode::OpCode,
@@ -160,14 +160,20 @@ impl<CTX, INTR: InterpreterTypes> Inspector<CTX, INTR> for OpCodeTrackingInspect
     }
 }
 
-#[derive(Debug)]
 pub struct CustomCrypto {
-    kzg_settings: KzgSettings,
+    kzg: crate::precompiles::KzgVerifier,
+}
+
+impl Debug for CustomCrypto {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CustomCrypto")
+    }
 }
 
 impl Default for CustomCrypto {
     fn default() -> Self {
-        Self { kzg_settings: KzgSettings::load_trusted_setup_file().unwrap() }
+        let settings = KzgSettings::load_trusted_setup_file().unwrap();
+        Self { kzg: crate::precompiles::KzgVerifier::new(&settings) }
     }
 }
 
@@ -217,6 +223,10 @@ impl Crypto for CustomCrypto {
         crate::precompiles::bls12_381_fp2_to_g2(fp2)
     }
 
+    fn modexp(&self, base: &[u8], exp: &[u8], modulus: &[u8]) -> Result<Vec<u8>, PrecompileError> {
+        Ok(crate::precompiles::modexp(base, exp, modulus))
+    }
+
     fn verify_kzg_proof(
         &self,
         z: &[u8; 32],
@@ -224,18 +234,9 @@ impl Crypto for CustomCrypto {
         commitment: &[u8; 48],
         proof: &[u8; 48],
     ) -> Result<(), PrecompileError> {
-        if !KzgProof::verify_kzg_proof(
-            &Bytes48(*commitment),
-            &Bytes32(*z),
-            &Bytes32(*y),
-            &Bytes48(*proof),
-            &self.kzg_settings,
-        )
-        .map_err(|err| PrecompileError::other(err.to_string()))?
-        {
+        if !self.kzg.verify(z, y, commitment, proof)? {
             return Err(PrecompileError::BlobVerifyKzgProofFailed);
         }
-
         Ok(())
     }
 }
