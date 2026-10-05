@@ -252,7 +252,7 @@ dependencies = [
 [[package]]
 name = "alloy-primitives"
 version = "1.4.1"
-source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.4.1#0d034202c9977acd601399efdd9c30fd1c1a08a0"
+source = "git+https://github.com/ziren-patches/core.git?tag=patch-alloy-primitives-1.4.1-ziren-1.2.7#0d034202c9977acd601399efdd9c30fd1c1a08a0"
 dependencies = [
  "alloy-rlp",
  "bytes",
@@ -919,7 +919,7 @@ dependencies = [
 [[package]]
 name = "bls12_381"
 version = "0.8.0"
-source = "git+https://github.com/ziren-patches/bls12_381?branch=patch-0.8.0#97b215f80e9bfab9ad6641e41b005b6d8e58f748"
+source = "git+https://github.com/ziren-patches/bls12_381?tag=patch-0.8.0-ziren-1.2.7#97b215f80e9bfab9ad6641e41b005b6d8e58f748"
 dependencies = [
  "cfg-if",
  "ff",
@@ -1999,7 +1999,7 @@ dependencies = [
 [[package]]
 name = "k256"
 version = "0.13.4"
-source = "git+https://github.com/ziren-patches/elliptic-curves?branch=patch-k256-0.13.4#6ad84b9b604911c6f5dd353b88c04927d2739a32"
+source = "git+https://github.com/ziren-patches/elliptic-curves?tag=patch-k256-0.13.4-ziren-1.2.7#5d641926a5ea6b7dee8b3a1410a49162aeb66ebf"
 dependencies = [
  "cfg-if",
  "ecdsa",
@@ -2032,8 +2032,8 @@ dependencies = [
 
 [[package]]
 name = "kzg-rs"
-version = "0.2.6"
-source = "git+https://github.com/ziren-patches/kzg-rs?branch=ziren#4cd5e3086a49dc1e94ffbd63ee4a7a9b2e342faa"
+version = "0.2.7"
+source = "git+https://github.com/ziren-patches/kzg-rs?tag=patch-0.2.7-ziren-1.2.7#8288c61a5917f5227e156b5660fbcfc4c3b14220"
 dependencies = [
  "bls12_381",
  "ff",
@@ -2321,7 +2321,7 @@ dependencies = [
 [[package]]
 name = "p256"
 version = "0.13.2"
-source = "git+https://github.com/ziren-patches/elliptic-curves?branch=patch-p256-0.13.2#88d42225abcb639b9bd3a930ac5a14f2262541c8"
+source = "git+https://github.com/ziren-patches/elliptic-curves?tag=patch-p256-0.13.2-ziren-1.2.7#91874d8de3e78b2f71d2096684189c687eb55cf3"
 dependencies = [
  "ecdsa",
  "elliptic-curve",
@@ -2626,7 +2626,7 @@ dependencies = [
 [[package]]
 name = "primeorder"
 version = "0.13.1"
-source = "git+https://github.com/ziren-patches/elliptic-curves?branch=patch-p256-0.13.2#88d42225abcb639b9bd3a930ac5a14f2262541c8"
+source = "git+https://github.com/ziren-patches/elliptic-curves?tag=patch-p256-0.13.2-ziren-1.2.7#91874d8de3e78b2f71d2096684189c687eb55cf3"
 dependencies = [
  "elliptic-curve",
 ]
@@ -3861,7 +3861,7 @@ dependencies = [
 [[package]]
 name = "substrate-bn"
 version = "0.6.0"
-source = "git+https://github.com/ziren-patches/bn?branch=patch-0.6.0#0dfeeb1b7bfc21941b6e4964d678abd094a54a6f"
+source = "git+https://github.com/ziren-patches/bn?tag=patch-0.6.0-ziren-1.2.7#0dfeeb1b7bfc21941b6e4964d678abd094a54a6f"
 dependencies = [
  "bytemuck",
  "byteorder",

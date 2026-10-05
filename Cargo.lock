@@ -329,7 +329,7 @@ dependencies = [
 [[package]]
 name = "alloy-primitives"
 version = "1.4.1"
-source = "git+https://github.com/ziren-patches/core.git?branch=patch-alloy-primitives-1.4.1#0d034202c9977acd601399efdd9c30fd1c1a08a0"
+source = "git+https://github.com/ziren-patches/core.git?tag=patch-alloy-primitives-1.4.1-ziren-1.2.7#0d034202c9977acd601399efdd9c30fd1c1a08a0"
 dependencies = [
  "alloy-rlp",
  "bytes",
@@ -811,7 +811,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -822,7 +822,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1368,7 +1368,7 @@ dependencies = [
  "bitflags 2.10.0",
  "cexpr",
  "clang-sys",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "log",
  "prettyplease 0.2.37",
  "proc-macro2",
@@ -1521,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "bls12_381"
 version = "0.8.0"
-source = "git+https://github.com/ziren-patches/bls12_381?branch=patch-0.8.0#97b215f80e9bfab9ad6641e41b005b6d8e58f748"
+source = "git+https://github.com/ziren-patches/bls12_381?tag=patch-0.8.0-ziren-1.2.7#97b215f80e9bfab9ad6641e41b005b6d8e58f748"
 dependencies = [
  "cfg-if",
  "ff 0.13.1",
@@ -1943,6 +1943,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
+name = "continuous"
+version = "0.1.0"
+dependencies = [
+ "alloy-chains",
+ "alloy-consensus",
+ "alloy-primitives",
+ "alloy-provider",
+ "alloy-rpc-client",
+ "alloy-transport",
+ "alloy-transport-ws",
+ "clap",
+ "dotenv",
+ "eyre",
+ "futures-util",
+ "guest-executor",
+ "host-executor",
+ "primitives",
+ "provider",
+ "reth-evm",
+ "reth-primitives-traits",
+ "serde",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "url",
+ "zkm-build",
+ "zkm-prover",
+ "zkm-sdk",
+]
+
+[[package]]
 name = "convert_case"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2014,6 +2046,15 @@ name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98b0cc327b5bc766e7fda9c9260cc0fa81b43a8e240440422dff70788e3f9ef1"
+dependencies = [
+ "crossbeam-utils",
+]
 
 [[package]]
 name = "crossbeam-deque"
@@ -2696,7 +2737,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4453,7 +4494,7 @@ dependencies = [
 [[package]]
 name = "k256"
 version = "0.13.4"
-source = "git+https://github.com/ziren-patches/elliptic-curves?branch=patch-k256-0.13.4#6ad84b9b604911c6f5dd353b88c04927d2739a32"
+source = "git+https://github.com/ziren-patches/elliptic-curves?tag=patch-k256-0.13.4-ziren-1.2.7#5d641926a5ea6b7dee8b3a1410a49162aeb66ebf"
 dependencies = [
  "cfg-if",
  "ecdsa",
@@ -4487,8 +4528,8 @@ dependencies = [
 
 [[package]]
 name = "kzg-rs"
-version = "0.2.6"
-source = "git+https://github.com/ziren-patches/kzg-rs?branch=ziren#4cd5e3086a49dc1e94ffbd63ee4a7a9b2e342faa"
+version = "0.2.7"
+source = "git+https://github.com/ziren-patches/kzg-rs?tag=patch-0.2.7-ziren-1.2.7#8288c61a5917f5227e156b5660fbcfc4c3b14220"
 dependencies = [
  "bls12_381 0.8.0",
  "ff 0.13.1",
@@ -4883,7 +4924,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5272,7 +5313,7 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 [[package]]
 name = "p256"
 version = "0.13.2"
-source = "git+https://github.com/ziren-patches/elliptic-curves?branch=patch-p256-0.13.2#88d42225abcb639b9bd3a930ac5a14f2262541c8"
+source = "git+https://github.com/ziren-patches/elliptic-curves?tag=patch-p256-0.13.2-ziren-1.2.7#91874d8de3e78b2f71d2096684189c687eb55cf3"
 dependencies = [
  "ecdsa",
  "elliptic-curve",
@@ -6031,7 +6072,7 @@ dependencies = [
 [[package]]
 name = "primeorder"
 version = "0.13.1"
-source = "git+https://github.com/ziren-patches/elliptic-curves?branch=patch-p256-0.13.2#88d42225abcb639b9bd3a930ac5a14f2262541c8"
+source = "git+https://github.com/ziren-patches/elliptic-curves?tag=patch-p256-0.13.2-ziren-1.2.7#91874d8de3e78b2f71d2096684189c687eb55cf3"
 dependencies = [
  "elliptic-curve",
 ]
@@ -7506,7 +7547,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8246,7 +8287,7 @@ dependencies = [
 [[package]]
 name = "substrate-bn"
 version = "0.6.0"
-source = "git+https://github.com/ziren-patches/bn?branch=patch-0.6.0#0dfeeb1b7bfc21941b6e4964d678abd094a54a6f"
+source = "git+https://github.com/ziren-patches/bn?tag=patch-0.6.0-ziren-1.2.7#0dfeeb1b7bfc21941b6e4964d678abd094a54a6f"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -8284,6 +8325,12 @@ dependencies = [
  "url",
  "zip",
 ]
+
+[[package]]
+name = "symlink"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a"
 
 [[package]]
 name = "syn"
@@ -8418,7 +8465,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.3",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8893,6 +8940,19 @@ dependencies = [
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-appender"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "050686193eb999b4bb3bc2acfa891a13da00f79734704c4b8b4ef1a10b368a3c"
+dependencies = [
+ "crossbeam-channel",
+ "symlink",
+ "thiserror 2.0.18",
+ "time",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -9460,7 +9520,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
