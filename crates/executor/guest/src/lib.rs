@@ -27,7 +27,8 @@ pub fn verify_block(input: &[u8]) -> (B256, B256, B256) {
         Arc::new((&input.genesis).try_into().unwrap()),
         input.custom_beneficiary,
     );
-    let (header, prev_state_root) = executor.execute(input).expect("failed to execute client");
+    let (header, prev_state_root) =
+        executor.execute(input, vec![]).expect("failed to execute client");
     let block_hash = header.hash_slow();
     (block_hash, header.state_root, prev_state_root)
 }

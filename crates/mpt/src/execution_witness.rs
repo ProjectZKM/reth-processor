@@ -1,6 +1,5 @@
-use alloy_primitives::{keccak256, map::HashMap, B256};
+use alloy_primitives::{keccak256, map::HashMap, Bytes, B256};
 use alloy_rlp::Decodable;
-use alloy_rpc_types_debug::ExecutionWitness;
 use reth_trie::TrieAccount;
 
 use crate::mpt::{resolve_nodes, MptNode, MptNodeData, MptNodeReference};
@@ -10,7 +9,7 @@ use crate::mpt::{resolve_nodes, MptNode, MptNodeData, MptNodeReference};
 // NOTE: This method should be called outside zkVM! In general you construct tries, then
 // validate them inside zkVM.
 pub(crate) fn build_validated_tries(
-    witness: &ExecutionWitness,
+    state: &Vec<Bytes>,
     pre_state_root: B256,
 ) -> Result<(MptNode, HashMap<B256, MptNode>), String> {
     // Step 1: Decode all RLP-encoded trie nodes and index by hash
@@ -19,7 +18,7 @@ pub(crate) fn build_validated_tries(
     let mut node_by_hash: HashMap<B256, MptNode> = HashMap::default();
     let mut root_node: Option<MptNode> = None;
 
-    for encoded in &witness.state {
+    for encoded in state {
         let node = MptNode::decode(encoded).expect("Valid MPT node in witness");
         let hash = keccak256(encoded);
         if hash == pre_state_root {
