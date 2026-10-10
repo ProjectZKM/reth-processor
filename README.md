@@ -11,7 +11,8 @@ A minimal implementation of generating zero-knowledge proofs of EVM block execut
 Required
 
 - [Rust](https://www.rust-lang.org/tools/install) 
-- [Ziren toolchain](https://docs.zkm.io/introduction/installation.html)
+- [Ziren toolchain](https://docs.zkm.io/introduction/installation.html): the guest program is always compiled with the `zkm` rustup toolchain, whichever toolchain builds the host; set `ZKM_GUEST_TOOLCHAIN` if it is installed under another name.
+- A checkout of [Ziren](https://github.com/ProjectZKM/Ziren) at its `main` branch next to this repository (`../Ziren`): the host and the guest take the Ziren crates from it, so the prover, the guest and its precompile patches link one Ziren.
 - Register on [Alchemy](https://www.alchemy.com/) or [Chainstack](https://chainstack.com/)​​ to get ​​`rpc url`​ and `ws url`​. But [Chainstack](https://chainstack.com/) does not support archival/historical `eth_getProof` calls.
 
 ### RPC Node Requirement
