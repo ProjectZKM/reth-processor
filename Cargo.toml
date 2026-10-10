@@ -50,7 +50,8 @@ provider = { path = "./crates/provider" }
 zkm-build = { git = "https://github.com/ProjectZKM/Ziren", branch = "main" }
 zkm-core-executor = { git = "https://github.com/ProjectZKM/Ziren", branch = "main" }
 zkm-prover = { git = "https://github.com/ProjectZKM/Ziren", branch = "main" }
-zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren", branch = "main" }
+zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren", branch = "feat/sdk-fleet-bearer" }
+# ^ token-only network auth (ProjectZKM/Ziren#554); move back to branch = "main" once it merges.
 
 # zkm-build = { path = "../Ziren/crates/build" }
 # zkm-core-executor = { path = "../Ziren/crates/core/executor" }
