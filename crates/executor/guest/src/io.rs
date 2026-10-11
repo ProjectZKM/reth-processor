@@ -147,11 +147,22 @@ impl DatabaseRef for TrieDB<'_> {
         let hashed_address = keccak256(address);
         let hashed_address = hashed_address.as_slice();
 
-        let storage_trie = self
-            .inner
-            .storage_tries
-            .get(hashed_address)
-            .expect("A storage trie must be provided for each account");
+        let storage_trie = match self.inner.storage_tries.get(hashed_address) {
+            Some(trie) => trie,
+            None => {
+                // A witness may omit storage for an absent account or an account
+                // whose authenticated storage root is empty. Never substitute
+                // zero for an unresolved account proof or non-empty storage.
+                let account = self.inner.state_trie.get_rlp::<TrieAccount>(hashed_address)
+                    .map_err(|err| ProviderError::TrieWitnessError(err.to_string()))?;
+                if account.map_or(EMPTY_ROOT_HASH, |a| a.storage_root) == EMPTY_ROOT_HASH {
+                    return Ok(U256::ZERO);
+                }
+                return Err(ProviderError::TrieWitnessError(format!(
+                    "missing non-empty storage trie for {address}"
+                )));
+            }
+        };
 
         Ok(storage_trie
             .get_rlp::<U256>(keccak256(index.to_be_bytes::<32>()).as_slice())
@@ -233,5 +244,40 @@ pub trait WitnessInput {
         }
 
         Ok(TrieDB::new(state, block_hashes, bytecodes_by_hash))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn state() -> EthereumState {
+        EthereumState { state_trie: Default::default(), storage_tries: HashMap::default() }
+    }
+
+    #[test]
+    fn omitted_storage_for_absent_account_is_zero() {
+        let state = state();
+        let db = TrieDB::new(&state, HashMap::default(), HashMap::default());
+        assert_eq!(db.storage_ref(Address::repeat_byte(1), U256::from(7)).unwrap(), U256::ZERO);
+    }
+
+    #[test]
+    fn omitted_storage_with_authenticated_empty_root_is_zero() {
+        let mut state = state();
+        let address = Address::repeat_byte(2);
+        state.state_trie.insert_rlp(keccak256(address).as_slice(), TrieAccount::default()).unwrap();
+        let db = TrieDB::new(&state, HashMap::default(), HashMap::default());
+        assert_eq!(db.storage_ref(address, U256::from(7)).unwrap(), U256::ZERO);
+    }
+
+    #[test]
+    fn omitted_non_empty_storage_is_rejected() {
+        let mut state = state();
+        let address = Address::repeat_byte(3);
+        let account = TrieAccount { storage_root: B256::repeat_byte(4), ..Default::default() };
+        state.state_trie.insert_rlp(keccak256(address).as_slice(), account).unwrap();
+        let db = TrieDB::new(&state, HashMap::default(), HashMap::default());
+        assert!(db.storage_ref(address, U256::from(7)).is_err());
     }
 }
