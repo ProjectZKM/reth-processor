@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, marker::PhantomData};
+use std::{collections::BTreeMap, marker::PhantomData, sync::RwLock};
 
 use alloy_consensus::Header;
 use alloy_eips::BlockNumberOrTag;
@@ -7,14 +7,14 @@ use alloy_provider::{Network, Provider};
 use alloy_rlp::{Decodable, Encodable};
 use alloy_rpc_types::Header as RpcHeader;
 use alloy_rpc_types_debug::ExecutionWitness;
-use serde::Deserialize;
 use alloy_trie::TrieAccount;
 use async_trait::async_trait;
 use mpt::EthereumState;
-use reth_storage_errors::ProviderError;
+use reth_storage_errors::{db::DatabaseError, ProviderError};
 use revm_database::{BundleState, DatabaseRef};
-use revm_primitives::{keccak256, ruint::aliases::U256, StorageKey, StorageValue};
+use revm_primitives::{keccak256, ruint::aliases::U256, StorageKey, StorageValue, KECCAK_EMPTY};
 use revm_state::{AccountInfo, Bytecode};
+use serde::Deserialize;
 
 use crate::{RpcDb, RpcDbError};
 
@@ -22,10 +22,12 @@ use crate::{RpcDb, RpcDbError};
 pub struct ExecutionWitnessRpcDb<P, N> {
     /// The provider which fetches data.
     pub provider: P,
+    /// Parent block used to fetch bytecode omitted from the execution witness.
+    pub state_block_number: u64,
     /// The cached state.
     pub state: EthereumState,
     /// The cached bytecodes.
-    pub codes: HashMap<B256, Bytecode>,
+    pub codes: RwLock<HashMap<B256, Bytecode>>,
 
     pub ancestor_headers: BTreeMap<u64, Header>,
 
@@ -54,9 +56,59 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
             .map(|h| (h.number, h))
             .collect();
 
-        let db = Self { provider, state, codes, ancestor_headers, phantom: PhantomData };
+        let db = Self {
+            provider,
+            state_block_number: block_number.saturating_sub(1),
+            state,
+            codes: RwLock::new(codes),
+            ancestor_headers,
+            phantom: PhantomData,
+        };
 
         Ok(db)
+    }
+
+    fn account_code(
+        &self,
+        address: Address,
+        expected_hash: B256,
+    ) -> Result<Option<Bytecode>, ProviderError> {
+        if expected_hash == KECCAK_EMPTY || expected_hash == B256::ZERO {
+            return Ok(None)
+        }
+        if let Some(code) = self
+            .codes
+            .read()
+            .map_err(|_| ProviderError::TrieWitnessError("bytecode cache lock poisoned".into()))?
+            .get(&expected_hash)
+            .cloned()
+        {
+            return Ok(Some(code))
+        }
+
+        tracing::warn!(%address, %expected_hash, block = self.state_block_number,
+            "Fetching bytecode omitted from execution witness");
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| {
+            ProviderError::Database(DatabaseError::Other("no tokio runtime found".into()))
+        })?;
+        let code = tokio::task::block_in_place(|| {
+            handle.block_on(async {
+                self.provider.get_code_at(address).number(self.state_block_number).await
+            })
+        })
+        .map_err(|err| ProviderError::Database(DatabaseError::Other(err.to_string())))?;
+        let actual_hash = keccak256(&code);
+        if actual_hash != expected_hash {
+            return Err(ProviderError::TrieWitnessError(format!(
+                "Fetched code hash mismatch for {address}: expected {expected_hash}, got {actual_hash}"
+            )))
+        }
+        let bytecode = Bytecode::new_raw(code);
+        self.codes
+            .write()
+            .map_err(|_| ProviderError::TrieWitnessError("bytecode cache lock poisoned".into()))?
+            .insert(expected_hash, bytecode.clone());
+        Ok(Some(bytecode))
     }
 }
 
@@ -143,7 +195,7 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
                 balance: account.balance,
                 nonce: account.nonce,
                 code_hash: account.code_hash,
-                code: None,
+                code: self.account_code(address, account.code_hash)?,
             };
 
             Ok(Some(account_info))
@@ -154,6 +206,8 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
 
     fn code_by_hash_ref(&self, code_hash: B256) -> Result<Bytecode, Self::Error> {
         self.codes
+            .read()
+            .map_err(|_| ProviderError::TrieWitnessError("bytecode cache lock poisoned".into()))?
             .get(&code_hash)
             .ok_or_else(|| {
                 ProviderError::TrieWitnessError(format!("Code not found for {code_hash}"))
@@ -201,7 +255,7 @@ where
     }
 
     fn bytecodes(&self) -> Vec<Bytecode> {
-        self.codes.values().cloned().collect()
+        self.codes.read().expect("bytecode cache lock poisoned").values().cloned().collect()
     }
 
     async fn ancestor_headers(&self) -> Result<Vec<Header>, RpcDbError> {
@@ -211,11 +265,147 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        io::{Read, Write},
+        net::TcpListener,
+        thread,
+        time::{Duration, Instant},
+    };
+
     use alloy_consensus::Header;
     use alloy_primitives::hex::FromHex;
     use alloy_rlp::Decodable;
 
     use super::*;
+
+    fn code_rpc(code: &str) -> (String, thread::JoinHandle<serde_json::Value>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        listener.set_nonblocking(true).unwrap();
+        let code = code.to_string();
+        let worker = thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            let mut stream = loop {
+                match listener.accept() {
+                    Ok((stream, _)) => break stream,
+                    Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
+                        assert!(Instant::now() < deadline, "no bytecode RPC request received");
+                        thread::sleep(Duration::from_millis(5));
+                    }
+                    Err(err) => panic!("{err}"),
+                }
+            };
+            stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+            let mut bytes = Vec::new();
+            let request = loop {
+                let mut buffer = [0u8; 1024];
+                let count = stream.read(&mut buffer).unwrap();
+                assert!(count > 0);
+                bytes.extend_from_slice(&buffer[..count]);
+                if let Some(end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let headers = String::from_utf8_lossy(&bytes[..end]);
+                    let length: usize = headers
+                        .lines()
+                        .find_map(|line| {
+                            line.to_ascii_lowercase()
+                                .strip_prefix("content-length:")
+                                .map(|value| value.trim().parse().unwrap())
+                        })
+                        .unwrap();
+                    if bytes.len() >= end + 4 + length {
+                        break serde_json::from_slice::<serde_json::Value>(
+                            &bytes[end + 4..end + 4 + length],
+                        )
+                        .unwrap()
+                    }
+                }
+            };
+            let response =
+                serde_json::json!({"jsonrpc": "2.0", "id": request["id"], "result": code})
+                    .to_string();
+            write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", response.len(), response).unwrap();
+            request
+        });
+        (url, worker)
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn missing_code_uses_parent_block_and_is_cached_for_guest_input() {
+        let (url, worker) = code_rpc("0x6000");
+        let code = Bytecode::new_raw(alloy_primitives::bytes!("6000"));
+        let hash = code.hash_slow();
+        let address = Address::repeat_byte(0x11);
+        let mut db = ExecutionWitnessRpcDb {
+            provider: alloy_provider::ProviderBuilder::new().connect_http(url.parse().unwrap()),
+            state_block_number: 26_167_641,
+            state: EthereumState {
+                state_trie: Default::default(),
+                storage_tries: HashMap::default(),
+            },
+            codes: RwLock::new(HashMap::default()),
+            ancestor_headers: BTreeMap::new(),
+            phantom: PhantomData,
+        };
+        db.state
+            .state_trie
+            .insert_rlp(
+                keccak256(address).as_slice(),
+                TrieAccount {
+                    nonce: 1,
+                    balance: U256::from(1),
+                    code_hash: hash,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+
+        assert_eq!(db.basic_ref(address).unwrap().unwrap().code, Some(code.clone()));
+        let request = worker.join().unwrap();
+        assert_eq!(request["method"], "eth_getCode");
+        assert_eq!(request["params"], serde_json::json!([address, "0x18f4959"]));
+        // The RPC listener is gone: both paths must use the verified cache.
+        assert_eq!(db.basic_ref(address).unwrap().unwrap().code, Some(code.clone()));
+        assert_eq!(db.code_by_hash_ref(hash).unwrap(), code.clone());
+        assert_eq!(db.bytecodes(), vec![code]);
+        assert!(db.basic_ref(Address::repeat_byte(0x22)).unwrap().is_none());
+        assert!(db.account_code(address, KECCAK_EMPTY).unwrap().is_none());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn wrong_fallback_code_is_rejected_and_not_exported() {
+        let (url, worker) = code_rpc("0x6001");
+        let expected_hash = keccak256(alloy_primitives::bytes!("6000"));
+        let address = Address::repeat_byte(0x11);
+        let mut db = ExecutionWitnessRpcDb {
+            provider: alloy_provider::ProviderBuilder::new().connect_http(url.parse().unwrap()),
+            state_block_number: 26_167_641,
+            state: EthereumState {
+                state_trie: Default::default(),
+                storage_tries: HashMap::default(),
+            },
+            codes: RwLock::new(HashMap::default()),
+            ancestor_headers: BTreeMap::new(),
+            phantom: PhantomData,
+        };
+        db.state
+            .state_trie
+            .insert_rlp(
+                keccak256(address).as_slice(),
+                TrieAccount {
+                    nonce: 1,
+                    balance: U256::from(1),
+                    code_hash: expected_hash,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+
+        let error = db.basic_ref(address).unwrap_err();
+        worker.join().unwrap();
+        assert!(error.to_string().contains("Fetched code hash mismatch"));
+        assert!(db.bytecodes().is_empty());
+        assert!(db.code_by_hash_ref(expected_hash).is_err());
+    }
 
     #[test]
     fn execution_witness_accepts_rpc_header_objects_and_null_keys() {
