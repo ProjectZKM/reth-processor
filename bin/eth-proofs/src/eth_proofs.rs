@@ -60,6 +60,30 @@ impl EthProofsClient {
                                         info!(block, "durable EthProofs report acknowledged");
                                     }
                                 }
+                                Ok(response)
+                                    if response.status() == reqwest::StatusCode::CONFLICT =>
+                                {
+                                    match this.already_published(block, &payload).await {
+                                        Ok(true) => {
+                                            if let Err(err) = state.acknowledge(block) {
+                                                error!(block, %err, "duplicate acknowledgment persistence failed");
+                                            } else {
+                                                info!(
+                                                    block,
+                                                    duplicate = true,
+                                                    "durable EthProofs report acknowledged"
+                                                );
+                                            }
+                                        }
+                                        Ok(false) => error!(
+                                            block,
+                                            "conflicting API proof differs; report remains pending"
+                                        ),
+                                        Err(err) => {
+                                            error!(block, %err, "duplicate proof lookup failed; report remains pending")
+                                        }
+                                    }
+                                }
                                 Ok(response) => {
                                     error!(block, status = %response.status(), "EthProofs report remains pending")
                                 }
@@ -75,6 +99,56 @@ impl EthProofsClient {
                 }
             }
         })
+    }
+
+    /// A lost local acknowledgment can turn a successful retry into HTTP 409.
+    /// Only accept it after checking the cluster, block, and exact published bytes.
+    async fn already_published(
+        &self,
+        block: u64,
+        payload: &serde_json::Value,
+    ) -> eyre::Result<bool> {
+        let rows: serde_json::Value = self
+            .client
+            .get(format!("{}/proofs?block={block}&limit=100", self.endpoint))
+            .header("Authorization", format!("Bearer {}", self.api_token))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let expected = STANDARD
+            .decode(payload["proof"].as_str().ok_or_else(|| eyre!("missing proof bytes"))?)?;
+        let proofs = rows["proofs"].as_array().ok_or_else(|| eyre!("invalid proof listing"))?;
+        for proof in proofs {
+            if proof["block_number"].as_u64() != Some(block) ||
+                proof["proof_status"].as_str() != Some("proved") ||
+                proof["cluster_version"]["cluster"]["index"].as_u64() != Some(self.cluster_id)
+            {
+                continue;
+            }
+            let id = match &proof["proof_id"] {
+                serde_json::Value::Number(id) => id.to_string(),
+                serde_json::Value::String(id) => id.clone(),
+                _ => continue,
+            };
+            if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+                continue;
+            }
+            let published = self
+                .client
+                .get(format!("{}/proofs/download/{id}", self.endpoint))
+                .header("Authorization", format!("Bearer {}", self.api_token))
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await?;
+            if published.as_ref() == expected.as_slice() {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     pub async fn queued(&self, block_number: u64) {
@@ -223,6 +297,55 @@ mod tests {
     use super::*;
     use crate::state::Identity;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn duplicate_lookup_requires_the_same_cluster_block_and_bytes() {
+        for (cluster, block, bytes, expected) in [
+            (8, 10, b"proof".as_slice(), true),
+            (9, 10, b"proof".as_slice(), false),
+            (8, 11, b"proof".as_slice(), false),
+            (8, 10, b"different".as_slice(), false),
+        ] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let client = EthProofsClient::new(
+                8,
+                format!("http://{}", listener.local_addr().unwrap()),
+                "test".into(),
+            );
+            let server = tokio::spawn(async move {
+                let listing = serde_json::json!({"proofs":[{
+                    "block_number":block,"proof_status":"proved","proof_id":123,
+                    "cluster_version":{"cluster":{"index":cluster}}
+                }]})
+                .to_string();
+                let count = if cluster == 8 && block == 10 { 2 } else { 1 };
+                for i in 0..count {
+                    let (mut socket, _) = listener.accept().await.unwrap();
+                    let mut request = vec![0; 4096];
+                    let n = socket.read(&mut request).await.unwrap();
+                    let request = String::from_utf8_lossy(&request[..n]);
+                    assert!(request.starts_with(if i == 0 {
+                        "GET /proofs?block=10&limit=100 "
+                    } else {
+                        "GET /proofs/download/123 "
+                    }));
+                    let body = if i == 0 { listing.as_bytes() } else { bytes };
+                    socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",body.len()).as_bytes()).await.unwrap();
+                    socket.write_all(body).await.unwrap();
+                }
+            });
+            let actual = tokio::time::timeout(
+                Duration::from_secs(5),
+                client
+                    .already_published(10, &serde_json::json!({"proof":STANDARD.encode(b"proof")})),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+            assert_eq!(actual, expected);
+            server.await.unwrap();
+        }
+    }
 
     #[tokio::test]
     async fn report_is_retained_until_http_success() {
