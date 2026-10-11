@@ -6609,9 +6609,12 @@ name = "rpc-db"
 version = "0.1.0"
 dependencies = [
  "alloy-consensus",
+ "alloy-eips",
  "alloy-primitives",
  "alloy-provider",
  "alloy-rlp",
+ "alloy-rpc-types",
+ "alloy-rpc-types-debug",
  "alloy-transport",
  "alloy-trie",
  "async-trait",
@@ -6622,6 +6625,8 @@ dependencies = [
  "revm-database-interface",
  "revm-primitives",
  "revm-state",
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
  "tokio",
  "tracing",

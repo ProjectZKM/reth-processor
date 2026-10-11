@@ -1,9 +1,13 @@
 use std::{collections::BTreeMap, marker::PhantomData};
 
 use alloy_consensus::Header;
+use alloy_eips::BlockNumberOrTag;
 use alloy_primitives::{map::HashMap, Address, B256};
-use alloy_provider::{ext::DebugApi, Network, Provider};
-use alloy_rlp::Decodable;
+use alloy_provider::{Network, Provider};
+use alloy_rlp::{Decodable, Encodable};
+use alloy_rpc_types::Header as RpcHeader;
+use alloy_rpc_types_debug::ExecutionWitness;
+use serde::Deserialize;
 use alloy_trie::TrieAccount;
 use async_trait::async_trait;
 use mpt::EthereumState;
@@ -32,7 +36,7 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
     /// Create a new [`ExecutionWitnessRpcDb`].
     pub async fn new(provider: P, block_number: u64, state_root: B256) -> Result<Self, RpcDbError> {
         tracing::info!("Fetching execution witness for block {}", block_number);
-        let execution_witness = provider.debug_execution_witness(block_number.into()).await?;
+        let execution_witness = fetch_execution_witness(&provider, block_number).await?;
         tracing::info!("Fetched execution witness for block done {}", block_number);
 
         let state = EthereumState::from_execution_witness(&execution_witness, state_root);
@@ -53,6 +57,66 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
         let db = Self { provider, state, codes, ancestor_headers, phantom: PhantomData };
 
         Ok(db)
+    }
+}
+
+async fn fetch_execution_witness<P, N>(
+    provider: &P,
+    block_number: u64,
+) -> Result<ExecutionWitness, RpcDbError>
+where
+    P: Provider<N>,
+    N: Network,
+{
+    let witness = provider
+        .client()
+        .request("debug_executionWitness", (BlockNumberOrTag::Number(block_number),))
+        .await?;
+
+    Ok(FlexibleExecutionWitness::into_execution_witness(witness))
+}
+
+#[derive(Debug, Deserialize)]
+struct FlexibleExecutionWitness {
+    state: Vec<alloy_primitives::Bytes>,
+    codes: Vec<alloy_primitives::Bytes>,
+    #[serde(default)]
+    keys: Option<Vec<alloy_primitives::Bytes>>,
+    headers: Vec<FlexibleExecutionWitnessHeader>,
+}
+
+impl FlexibleExecutionWitness {
+    fn into_execution_witness(self) -> ExecutionWitness {
+        ExecutionWitness {
+            state: self.state,
+            codes: self.codes,
+            keys: self.keys.unwrap_or_default(),
+            headers: self
+                .headers
+                .into_iter()
+                .map(FlexibleExecutionWitnessHeader::into_rlp_bytes)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum FlexibleExecutionWitnessHeader {
+    Rlp(alloy_primitives::Bytes),
+    Rpc(RpcHeader<Header>),
+}
+
+impl FlexibleExecutionWitnessHeader {
+    fn into_rlp_bytes(self) -> alloy_primitives::Bytes {
+        match self {
+            Self::Rlp(bytes) => bytes,
+            Self::Rpc(header) => {
+                let mut out = Vec::new();
+                header.into_consensus().encode(&mut out);
+                out.into()
+            }
+        }
     }
 }
 
@@ -142,5 +206,75 @@ where
 
     async fn ancestor_headers(&self) -> Result<Vec<Header>, RpcDbError> {
         Ok(self.ancestor_headers.values().cloned().collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy_consensus::Header;
+    use alloy_primitives::hex::FromHex;
+    use alloy_rlp::Decodable;
+
+    use super::*;
+
+    #[test]
+    fn execution_witness_accepts_rpc_header_objects_and_null_keys() {
+        let json = r#"{
+            "headers": [{
+                "parentHash": "0xddcb9640c370c7914ccf303924421b257f05a676fc8d3c9c33ef8476194d98bd",
+                "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                "miner": "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97",
+                "stateRoot": "0x043ef1fafb089e28e171f777d22845c2bdbf89e6b767857b02dcf9308de92b5c",
+                "transactionsRoot": "0x751ee8f2d2893940e2b8287a72fb451ca382e5e515e8de266686e057f8cb41a7",
+                "receiptsRoot": "0xc0bf6c67ff3ab702758b903204bf3f054ce68ca48dc55f8fd40e5e912b34f782",
+                "logsBloom": "0xdc7d77b6e8cfcb93b6be74bdc368dba1dfecc4fdef2447324c1d84facd5cdeb2fd5e0196e6fdd5bdff93e3f9ea46adcf76bf89f8bf0e6141b5de26c0bbbf14f7cdbeb0abfedaebf95b7e7a48a5e877fd5c7ef11fb8cc9baa83445c55b8e5ffc8dee2fb19ab7e61dbcc1b9357fe0aecee5e1f7769d396fed9fef5c455bf2fff4de072397a939a5768bd69a73b3587832ab8b3c7ef653dc1de147b3973fbbb8fbfcf157d67a4d5ee5c7df5cd87dcc017a8ffd58b4d9f4c71d85dee3b2e6a1f69ffdfa75f0ef9e83edbbfe32ab7d274eedbd8cc71ff8f7e689bede5331bb0626bd6f4dde9cac72714b43eefb36df28baee2ffe36e2967fd02e2573ef7995503e7cf",
+                "difficulty": "0x0",
+                "number": "0x17e8a77",
+                "gasLimit": "0x3938700",
+                "gasUsed": "0x19aacd0",
+                "timestamp": "0x6a017d13",
+                "extraData": "0x546974616e2028746974616e6275696c6465722e78797a29",
+                "mixHash": "0xd0d37c7118b2221b8ec1c4940be1689108309c9837a0359d41be16acdc7e546e",
+                "nonce": "0x0000000000000000",
+                "baseFeePerGas": "0x115394a1",
+                "withdrawalsRoot": "0x978b9471e9087c6f967aaa08f757abd7280dbb7aa3310320cdd4d3fb4ecb9e5e",
+                "blobGasUsed": "0x0",
+                "excessBlobGas": "0xb503bd8",
+                "parentBeaconBlockRoot": "0xc2b892804ed1f1f3cfeefbbc0fffd0e298bab43a7773409154a0e6ea306b794a",
+                "requestsHash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "slotNumber": null,
+                "hash": "0x190299f2eee1493723cc749ff9148663c5202f9b3479ed0da8d99ba62f882c23"
+            }],
+            "codes": ["0x6000"],
+            "state": ["0x80"],
+            "keys": null
+        }"#;
+
+        let witness = serde_json::from_str::<FlexibleExecutionWitness>(json)
+            .unwrap()
+            .into_execution_witness();
+        let header = Header::decode(&mut witness.headers[0].as_ref()).unwrap();
+
+        assert_eq!(header.number, 25_070_199);
+        assert_eq!(witness.codes.len(), 1);
+        assert_eq!(witness.state.len(), 1);
+        assert!(witness.keys.is_empty());
+    }
+
+    #[test]
+    fn execution_witness_preserves_rlp_header_bytes_and_keys() {
+        let json = r#"{
+            "headers": ["0x010203"],
+            "codes": [],
+            "state": [],
+            "keys": ["0x04"]
+        }"#;
+
+        let witness = serde_json::from_str::<FlexibleExecutionWitness>(json)
+            .unwrap()
+            .into_execution_witness();
+
+        assert_eq!(witness.headers[0].as_ref(), Vec::<u8>::from_hex("010203").unwrap());
+        assert_eq!(witness.keys[0].as_ref(), Vec::<u8>::from_hex("04").unwrap());
     }
 }
