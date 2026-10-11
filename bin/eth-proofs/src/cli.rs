@@ -47,7 +47,7 @@ pub struct Args {
     pub max_lag: u64,
 
     /// In local mode, select the latest eligible head before each preparation.
-    /// Wait for the current proof to finish instead of prefetching a backlog.
+    /// Prepare ahead of proving; retain only the newest completed witness.
     #[clap(long)]
     pub latest_block: bool,
 
@@ -87,7 +87,7 @@ pub struct Args {
     #[clap(long)]
     pub start_block: Option<u64>,
 
-    /// Witness preparation concurrency (currently 1; GPU proving remains serial).
+    /// Witness preparation concurrency (1 or 2 in latest mode; GPU proving remains serial).
     #[clap(long, default_value_t = 1)]
     pub prepare_concurrency: usize,
 

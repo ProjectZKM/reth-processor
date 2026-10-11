@@ -20,6 +20,7 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 use zkm_sdk::{include_elf, ProverClient};
 
 mod cli;
+mod latest;
 mod state;
 
 mod eth_proofs;
@@ -53,8 +54,12 @@ async fn main() -> eyre::Result<()> {
     eyre::ensure!(args.block_interval > 0, "block interval must be positive");
     eyre::ensure!(args.max_pending_reports > 0, "pending report limit must be positive");
     eyre::ensure!(
-        args.prepare_concurrency == 1 && args.prefetch_depth > 0,
-        "this migration starts with serial preparation and a positive queue depth"
+        (1..=2).contains(&args.prepare_concurrency) && args.prefetch_depth > 0,
+        "preparation concurrency must be 1 or 2 and queue depth must be positive"
+    );
+    eyre::ensure!(
+        args.latest_block || args.prepare_concurrency == 1,
+        "parallel preparation requires --latest-block"
     );
     let elf = match &args.elf_file {
         Some(path) => std::fs::read(path)?,
@@ -227,17 +232,51 @@ async fn main() -> eyre::Result<()> {
     let executor = Arc::new(executor);
     let alerting_client = Arc::new(alerting_client);
     let (mut tx, mut rx) = mpsc::channel(args.prefetch_depth.max(1));
-    let proof_finished = Arc::new(tokio::sync::Notify::new());
+    let (latest_tx, mut latest_rx) = tokio::sync::watch::channel(None);
+    // Recover a completed proof before choosing a fresh head. Only this prover
+    // owns the durable cursor; preparations never advance or delete its inputs.
+    if args.latest_block {
+        let state = state.as_ref().unwrap();
+        if let Some(number) = state.next_block() {
+            if state.is_committed(number)? {
+                state.advance(number, true)?;
+            }
+        }
+    }
     let fetcher = {
         let executor = executor.clone();
         let alerting_client = alerting_client.clone();
         let max_lag = args.max_lag;
         let state = state.clone();
-        let mut preparation_shutdown = shutdown.clone();
+        let preparation_shutdown = shutdown.clone();
         let latest_block = args.latest_block;
         let head_provider = http_provider.clone();
-        let proof_finished = proof_finished.clone();
+        let prepare_concurrency = args.prepare_concurrency;
         tokio::spawn(async move {
+            if latest_block {
+                let minimum = state.as_ref().unwrap().next_block().unwrap_or(0);
+                return latest::run(
+                    prepare_concurrency,
+                    minimum,
+                    block_interval,
+                    block_residue,
+                    latest_tx,
+                    preparation_shutdown,
+                    || {
+                        let provider = head_provider.clone();
+                        async move { Ok(provider.get_block_number().await?) }
+                    },
+                    |number| {
+                        let executor = executor.clone();
+                        async move {
+                            executor.wait_for_block(number).await?;
+                            let input = executor.prepare(number).await?;
+                            Ok(Arc::new(bincode::serialize(&input)?))
+                        }
+                    },
+                )
+                .await;
+            }
             // The subscription is only a wake-up: it says how far the chain
             // is.  Which block to prepare next is a cursor that advances by
             // `block_interval`, so falling behind never skips a block — the
@@ -246,44 +285,11 @@ async fn main() -> eyre::Result<()> {
             // does not.
             let mut head = 0u64;
             let mut next = state.as_ref().and_then(|s| s.next_block()).unwrap_or(0);
-            'preparation: loop {
+            loop {
                 if *preparation_shutdown.borrow() {
                     break;
                 }
-                if latest_block {
-                    let state = state.as_ref().unwrap();
-                    next = state.next_block().unwrap_or(0);
-                    // Recover a proof committed just before a crash before skipping.
-                    if next == 0 || !state.is_committed(next)? {
-                        head = match head_provider.get_block_number().await {
-                            Ok(head) => head,
-                            Err(err) => {
-                                warn!(%err, "latest head lookup failed; retrying without advancing");
-                                tokio::time::sleep(Duration::from_secs(2)).await;
-                                continue;
-                            }
-                        };
-                        let Some(latest) =
-                            latest_selected_block(head, block_interval, block_residue)
-                                .filter(|latest| next == 0 || *latest >= next)
-                        else {
-                            tokio::time::sleep(Duration::from_secs(2)).await;
-                            continue;
-                        };
-                        if next == 0 {
-                            state.initialize(latest)?;
-                        } else if latest > next {
-                            warn!(
-                                from = next,
-                                to = latest,
-                                "skipping lagging blocks to latest head"
-                            );
-                            state.skip_to(latest)?;
-                        }
-                        next = latest;
-                    }
-                }
-                if !latest_block && (next == 0 || next > head) {
+                if next == 0 || next > head {
                     match stream.next().await {
                         Some(header) => {
                             head = head.max(header);
@@ -302,10 +308,8 @@ async fn main() -> eyre::Result<()> {
                     }
                 }
                 // Absorb whatever headers are already queued so `head` is fresh.
-                if !latest_block {
-                    while let Some(Some(header)) = stream.next().now_or_never() {
-                        head = head.max(header);
-                    }
+                while let Some(Some(header)) = stream.next().now_or_never() {
+                    head = head.max(header);
                 }
 
                 let number = next;
@@ -319,12 +323,6 @@ async fn main() -> eyre::Result<()> {
                     if state.is_committed(number)? {
                         if tx.send((number, None)).await.is_err() {
                             break;
-                        }
-                        if latest_block {
-                            tokio::select! {
-                                _ = proof_finished.notified() => {},
-                                _ = preparation_shutdown.changed() => break,
-                            }
                         }
                         continue;
                     }
@@ -352,20 +350,11 @@ async fn main() -> eyre::Result<()> {
                             if tx.send((number, Some(client_input))).await.is_err() {
                                 return Ok::<(), eyre::Report>(());
                             }
-                            if latest_block {
-                                tokio::select! {
-                                    _ = proof_finished.notified() => {},
-                                    _ = preparation_shutdown.changed() => break 'preparation,
-                                }
-                            }
                             break;
                         }
                         Err(err) => {
                             report_error(&alerting_client, number, err).await;
                             tokio::time::sleep(Duration::from_secs(5)).await;
-                            if latest_block {
-                                continue 'preparation;
-                            }
                         }
                     }
                 }
@@ -383,9 +372,38 @@ async fn main() -> eyre::Result<()> {
         if *shutdown.borrow() {
             break;
         }
-        let next = tokio::select! {
-            next = rx.next() => next,
-            _ = shutdown.changed(), if state.is_some() => None,
+        let next = if args.latest_block {
+            loop {
+                let prepared = latest_rx.borrow_and_update().clone();
+                if let Some((number, bytes)) = prepared {
+                    let state = state.as_ref().unwrap();
+                    if state.next_block().is_none_or(|next| number >= next) {
+                        state.initialize(number)?;
+                        let next = state.next_block().unwrap();
+                        if number > next {
+                            warn!(
+                                from = next,
+                                to = number,
+                                "skipping lagging blocks to newest prepared head"
+                            );
+                            state.skip_to(number)?;
+                        }
+                        state.save_input(number, &bytes)?;
+                        break Some((number, Some(bincode::deserialize(&bytes)?)));
+                    }
+                }
+                tokio::select! {
+                    changed = latest_rx.changed() => {
+                        if changed.is_err() { break None; }
+                    },
+                    _ = shutdown.changed() => break None,
+                }
+            }
+        } else {
+            tokio::select! {
+                next = rx.next() => next,
+                _ = shutdown.changed(), if state.is_some() => None,
+            }
         };
         let Some((number, client_input)) = next else {
             break;
@@ -441,9 +459,6 @@ async fn main() -> eyre::Result<()> {
         }
         if let Some(state) = &state {
             state.advance(number, true)?;
-        }
-        if args.latest_block {
-            proof_finished.notify_one();
         }
     }
     if *shutdown.borrow() {
