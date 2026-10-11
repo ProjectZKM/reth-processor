@@ -39,14 +39,14 @@ async fn test_in_zkvm() {
     };
 
     let rpc_url = Url::parse(env::var("RPC_1").unwrap().as_str()).expect("invalid rpc url");
-    let elf = include_elf!("guest").to_vec();
+    let elf = include_elf!("reth").to_vec();
     let block_execution_strategy_factory =
         create_eth_block_execution_strategy_factory(&config.genesis, config.custom_beneficiary);
 
     let provider = RootProvider::<Ethereum>::new_http(rpc_url);
     let client = Arc::new(ProverClient::new());
 
-    let executor = build_executor::<EthExecutorComponents<_>, _>(
+    let executor = build_executor::<EthExecutorComponents<_, _>, _>(
         elf,
         Some(provider),
         None,

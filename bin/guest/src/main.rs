@@ -2,7 +2,6 @@
 zkm_zkvm::entrypoint!(main);
 
 use guest_executor::verify_block;
-use std::sync::Arc;
 
 pub fn main() {
     // Read the input.

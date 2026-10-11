@@ -48,6 +48,9 @@ cargo run -r --bin host -- --block-number <block-number> --chain-id <chain-id> -
 
 # eg.
 cargo run -r --bin host -- --block-number 25134887 --chain-id 1 --cache-dir ./bin/host
+
+# GOAT cached block
+cargo run -r --bin host -- --block-number 9831027 --chain-id 48816 --cache-dir ./bin/host
 ```
 
 Note that even when utilizing a cached input, the host still needs access to the chain ID to identify the network type, either through `--rpc-url` or `--chain-id`. To run the host completely offline, use `--chain-id` for this.
