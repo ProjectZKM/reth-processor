@@ -69,7 +69,10 @@ impl EthProofsClient {
                     }
                     Err(err) => error!(%err, "reading persistent reporting outbox failed"),
                 }
-                tokio::time::sleep(Duration::from_secs(3)).await;
+                tokio::select! {
+                    _ = state.report_ready() => {},
+                    _ = tokio::time::sleep(Duration::from_secs(3)) => {},
+                }
             }
         })
     }
@@ -240,7 +243,6 @@ mod tests {
             )
             .unwrap(),
         );
-        state.commit(10, b"proof", b"values", serde_json::json!({"block_number":10})).unwrap();
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let client = EthProofsClient::new(
             8,
@@ -249,11 +251,16 @@ mod tests {
         )
         .with_state(state.clone());
         let reporter = client.start_reporter();
+        // Let the reporter enter its idle wait, then commit a new output.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        state.commit(10, b"proof", b"values", serde_json::json!({"block_number":10})).unwrap();
         for status in ["401 Unauthorized", "200 OK"] {
-            let (mut socket, _) = tokio::time::timeout(Duration::from_secs(10), listener.accept())
-                .await
-                .unwrap()
-                .unwrap();
+            let timeout = if status.starts_with("401") { 1 } else { 10 };
+            let (mut socket, _) =
+                tokio::time::timeout(Duration::from_secs(timeout), listener.accept())
+                    .await
+                    .unwrap()
+                    .unwrap();
             let mut request = Vec::new();
             loop {
                 let mut bytes = [0; 2048];

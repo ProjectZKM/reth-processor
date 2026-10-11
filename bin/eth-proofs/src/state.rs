@@ -39,6 +39,7 @@ pub struct State {
     root: PathBuf,
     _lock: File,
     checkpoint: Mutex<Checkpoint>,
+    report_ready: tokio::sync::Notify,
 }
 impl State {
     pub fn open(root: &Path, identity: Identity, start: Option<u64>) -> eyre::Result<Self> {
@@ -69,8 +70,12 @@ impl State {
         } else {
             Checkpoint { version: 1, identity, next_block: start, last_proved: None }
         };
-        let state =
-            Self { root: fs::canonicalize(root)?, _lock: lock, checkpoint: Mutex::new(checkpoint) };
+        let state = Self {
+            root: fs::canonicalize(root)?,
+            _lock: lock,
+            checkpoint: Mutex::new(checkpoint),
+            report_ready: tokio::sync::Notify::new(),
+        };
         state.save_checkpoint()?;
         state.recover_reports()?;
         Ok(state)
@@ -159,7 +164,9 @@ impl State {
             report,
         };
         atomic_write(&dir.join("manifest.json"), &serde_json::to_vec(&committed)?)?;
-        self.ensure_report(&committed)
+        self.ensure_report(&committed)?;
+        self.report_ready.notify_one();
+        Ok(())
     }
     pub fn is_committed(&self, block: u64) -> eyre::Result<bool> {
         let dir = self.root.join("outputs").join(block.to_string());
@@ -206,6 +213,9 @@ impl State {
             }
         }
         sync_dir(&self.root.join("inputs"))
+    }
+    pub async fn report_ready(&self) {
+        self.report_ready.notified().await;
     }
     pub fn pending_count(&self) -> eyre::Result<usize> {
         Ok(fs::read_dir(self.root.join("outbox"))?
