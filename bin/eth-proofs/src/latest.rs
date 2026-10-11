@@ -1,7 +1,12 @@
 //! A bounded latest-head preparation pool. The prover consumes a single slot;
 //! older completions cannot replace newer ones, even when RPCs finish out of order.
 use futures::{stream::FuturesUnordered, StreamExt};
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{
+    collections::HashSet,
+    future::Future,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::sync::watch;
 use tracing::{info, warn};
 
@@ -27,6 +32,8 @@ where
     let mut running = FuturesUnordered::new();
     let mut selected = None;
     let mut published = None;
+    let mut active_blocks = HashSet::new();
+    let mut retry_after = None;
     let mut poll = tokio::time::interval(Duration::from_millis(500));
     poll.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
@@ -37,6 +44,7 @@ where
             _ = shutdown.changed() => break,
             result = running.next(), if !running.is_empty() => {
                 if let Some((number, result)) = result {
+                    active_blocks.remove(&number);
                     match result {
                         Ok(bytes) if published.is_none_or(|previous| number > previous) => {
                             info!(number, "latest-head witness ready");
@@ -44,7 +52,12 @@ where
                             output.send_replace(Some((number, bytes)));
                         },
                         Ok(_) => {}, // A slower older witness must never replace a newer one.
-                        Err(err) => warn!(number, %err, "latest-head witness preparation failed"),
+                        Err(err) => {
+                            warn!(number, %err, "latest-head witness preparation failed");
+                            if selected == Some(number) {
+                                retry_after = Some((number, Instant::now() + Duration::from_secs(2)));
+                            }
+                        },
                     }
                 }
             },
@@ -57,9 +70,13 @@ where
                     }
                 };
                 if let Some(number) = newest.filter(|number| {
-                    *number >= minimum && selected.is_none_or(|previous| *number > previous)
+                    *number >= minimum && selected.is_none_or(|previous| *number >= previous)
+                        && published.is_none_or(|previous| *number > previous)
+                        && !active_blocks.contains(number)
+                        && retry_after.is_none_or(|(failed, until)| *number != failed || Instant::now() >= until)
                 }) {
                     selected = Some(number);
+                    active_blocks.insert(number);
                     let future = prepare(number);
                     running.push(async move { (number, future.await) });
                     info!(number, active = running.len(), "latest-head witness preparation started");
@@ -176,6 +193,40 @@ mod tests {
         })
         .await
         .unwrap();
+        stop.send(true).unwrap();
+        task.await.unwrap().unwrap();
+    }
+    #[tokio::test]
+    async fn retries_an_announced_head_until_its_witness_is_available() {
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let (output, mut ready) = watch::channel(None);
+        let (stop, shutdown) = watch::channel(false);
+        let task = tokio::spawn({
+            let attempts = attempts.clone();
+            async move {
+                run(
+                    2,
+                    100,
+                    1,
+                    0,
+                    output,
+                    shutdown,
+                    || std::future::ready(Ok(100)),
+                    |_| {
+                        let attempt = attempts.fetch_add(1, Ordering::SeqCst);
+                        std::future::ready(if attempt == 0 {
+                            Err(eyre::eyre!("witness RPC has not received this head yet"))
+                        } else {
+                            Ok(Arc::new(vec![1]))
+                        })
+                    },
+                )
+                .await
+            }
+        });
+        tokio::time::timeout(Duration::from_secs(4), ready.changed()).await.unwrap().unwrap();
+        assert_eq!(ready.borrow().as_ref().unwrap().0, 100);
+        assert_eq!(attempts.load(Ordering::SeqCst), 2);
         stop.send(true).unwrap();
         task.await.unwrap().unwrap();
     }
