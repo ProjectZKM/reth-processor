@@ -125,6 +125,31 @@ impl State {
         sync_dir(&self.root.join("inputs"))?;
         Ok(())
     }
+
+    /// Skip unproved input backlog without changing completed outputs or reports.
+    pub fn skip_to(&self, block: u64) -> eyre::Result<()> {
+        {
+            let mut c = self.checkpoint.lock().unwrap();
+            let next = c.next_block.ok_or_else(|| eyre::eyre!("cursor is not initialized"))?;
+            if block < next || block % c.identity.interval != c.identity.residue {
+                bail!("refusing to skip backwards or outside the selected residue");
+            }
+            c.next_block = Some(block);
+        }
+        self.save_checkpoint()?;
+        for entry in fs::read_dir(self.root.join("inputs"))? {
+            let path = entry?.path();
+            if path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .and_then(|s| s.parse::<u64>().ok())
+                .is_some_and(|number| number < block)
+            {
+                fs::remove_file(path)?;
+            }
+        }
+        sync_dir(&self.root.join("inputs"))
+    }
     pub fn input(&self, block: u64) -> eyre::Result<Option<Vec<u8>>> {
         let p = self.root.join("inputs").join(format!("{block}.bin"));
         if !p.exists() {
@@ -284,6 +309,37 @@ mod tests {
             interval: 1,
             residue: 0,
         }
+    }
+    #[test]
+    fn skip_preserves_completed_proofs_reports_and_restart_cursor() {
+        let root = tempfile::tempdir().unwrap();
+        let state = State::open(root.path(), identity(), Some(10)).unwrap();
+        state.commit(10, b"proof", b"values", serde_json::json!({"block_number":10})).unwrap();
+        state.advance(10, true).unwrap();
+        state.save_input(11, b"stale").unwrap();
+        state.save_input(20, b"latest").unwrap();
+        state.skip_to(20).unwrap();
+        assert!(state.input(11).unwrap().is_none());
+        assert_eq!(state.input(20).unwrap().unwrap(), b"latest");
+        assert!(state.is_committed(10).unwrap());
+        assert_eq!(state.pending_count().unwrap(), 1);
+        assert!(state.skip_to(19).is_err());
+        drop(state);
+        let state = State::open(root.path(), identity(), None).unwrap();
+        assert_eq!(state.next_block(), Some(20));
+        assert_eq!(state.checkpoint.lock().unwrap().last_proved, Some(10));
+        assert_eq!(state.pending_count().unwrap(), 1);
+    }
+
+    #[test]
+    fn skip_rejects_a_block_outside_the_stream_residue() {
+        let root = tempfile::tempdir().unwrap();
+        let mut scope = identity();
+        scope.interval = 2;
+        scope.residue = 1;
+        let state = State::open(root.path(), scope, Some(11)).unwrap();
+        assert!(state.skip_to(20).is_err());
+        assert_eq!(state.next_block(), Some(11));
     }
     #[test]
     fn restart_recovers_proof_and_pending_report_without_reproving() {

@@ -46,6 +46,11 @@ pub struct Args {
     #[clap(long, default_value_t = 0)]
     pub max_lag: u64,
 
+    /// In local mode, select the latest eligible head before each preparation.
+    /// Wait for the current proof to finish instead of prefetching a backlog.
+    #[clap(long)]
+    pub latest_block: bool,
+
     /// ETH proofs endpoint.
     #[clap(long, env)]
     pub eth_proofs_endpoint: String,
