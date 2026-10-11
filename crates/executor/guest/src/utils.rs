@@ -1,5 +1,5 @@
 /// Profile the given code block cycle count.
-#[macro_export]
+#[allow(unused_macros)]
 macro_rules! profile {
     ($name:expr, $block:block) => {{
         #[cfg(target_os = "zkvm")]
@@ -18,7 +18,6 @@ macro_rules! profile {
 }
 
 /// Profile the given code block and add the cycle count to the execution report.
-#[macro_export]
 macro_rules! profile_report {
     ($name:expr, $block:block) => {{
         #[cfg(target_os = "zkvm")]
