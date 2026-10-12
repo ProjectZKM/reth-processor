@@ -87,7 +87,7 @@ pub struct Args {
     #[clap(long)]
     pub start_block: Option<u64>,
 
-    /// Witness preparation concurrency (1 or 2 in latest mode; GPU proving remains serial).
+    /// Witness preparation concurrency (1 or 2; consecutive results are delivered in order).
     #[clap(long, default_value_t = 1)]
     pub prepare_concurrency: usize,
 
