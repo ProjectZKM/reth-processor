@@ -271,14 +271,12 @@ where
         }
         Ok(())
     }
-}
 
-impl<C, P> BlockExecutor<C> for FullExecutor<C, P>
-where
-    C: ExecutorComponents,
-    P: Provider<C::Network> + Clone + std::fmt::Debug,
-{
-    async fn execute(&self, block_number: u64) -> eyre::Result<()> {
+    /// Fetch the block and witness and execute natively, without starting GPU proving.
+    pub async fn prepare(
+        &self,
+        block_number: u64,
+    ) -> eyre::Result<ClientExecutorInput<C::Primitives>> {
         self.hooks.on_execution_start(block_number).await?;
 
         let client_input_from_cache = self.config.cache_dir.as_ref().and_then(|cache_dir| {
@@ -333,9 +331,25 @@ where
         };
         info!("Block {} executed in {:?}", block_number, now.elapsed());
 
-        self.process_client(client_input, &self.hooks, self.config.prove_mode).await?;
+        Ok(client_input)
+    }
 
-        Ok(())
+    /// Prove a prepared input; callers serialize core and compression together.
+    pub async fn prove_prepared(
+        &self,
+        client_input: ClientExecutorInput<C::Primitives>,
+    ) -> eyre::Result<()> {
+        self.process_client(client_input, &self.hooks, self.config.prove_mode).await
+    }
+}
+
+impl<C, P> BlockExecutor<C> for FullExecutor<C, P>
+where
+    C: ExecutorComponents,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
+{
+    async fn execute(&self, block_number: u64) -> eyre::Result<()> {
+        self.prove_prepared(self.prepare(block_number).await?).await
     }
 
     fn client(&self) -> Arc<C::Prover> {
