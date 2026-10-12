@@ -9,6 +9,8 @@ workspace = true
 
 [dependencies]
 url.workspace = true
+# Alloy shares this client; decode gzip responses for large execution witnesses.
+reqwest = { workspace = true, features = ["gzip"] }
 
 # alloy
 alloy-provider.workspace = true
