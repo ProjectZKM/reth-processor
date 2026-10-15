@@ -9,7 +9,7 @@ use alloy_provider::{Provider, ProviderBuilder, WsConnect};
 use clap::Parser;
 use cli::Args;
 use eth_proofs::EthProofsClient;
-use futures::{channel::mpsc, future::ready, FutureExt, SinkExt, StreamExt};
+use futures::{channel::mpsc, future::ready, FutureExt, StreamExt};
 use host_executor::{
     alerting::AlertingClient, create_eth_block_execution_strategy_factory, EthExecutorComponents,
     FullExecutor,
@@ -20,6 +20,7 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 use zkm_sdk::{include_elf, ProverClient};
 
 mod cli;
+mod consecutive;
 mod latest;
 mod state;
 
@@ -56,10 +57,6 @@ async fn main() -> eyre::Result<()> {
     eyre::ensure!(
         (1..=2).contains(&args.prepare_concurrency) && args.prefetch_depth > 0,
         "preparation concurrency must be 1 or 2 and queue depth must be positive"
-    );
-    eyre::ensure!(
-        args.latest_block || args.prepare_concurrency == 1,
-        "parallel preparation requires --latest-block"
     );
     let elf = match &args.elf_file {
         Some(path) => std::fs::read(path)?,
@@ -162,7 +159,7 @@ async fn main() -> eyre::Result<()> {
         None
     };
     let head_shutdown = shutdown.clone();
-    let mut stream = if state.is_some() {
+    let stream = if state.is_some() {
         futures::stream::unfold(
             (http_provider.clone(), None, head_shutdown),
             |(provider, mut previous, shutdown)| async move {
@@ -231,7 +228,7 @@ async fn main() -> eyre::Result<()> {
     // idle for the RPC round trips.
     let executor = Arc::new(executor);
     let alerting_client = Arc::new(alerting_client);
-    let (mut tx, mut rx) = mpsc::channel(args.prefetch_depth.max(1));
+    let (tx, mut rx) = mpsc::channel(args.prefetch_depth.max(1));
     let (latest_tx, mut latest_rx) = tokio::sync::watch::channel(None);
     // Recover a completed proof before choosing a fresh head. Only this prover
     // owns the durable cursor; preparations never advance or delete its inputs.
@@ -243,7 +240,7 @@ async fn main() -> eyre::Result<()> {
             }
         }
     }
-    let fetcher = {
+    let mut fetcher = {
         let executor = executor.clone();
         let alerting_client = alerting_client.clone();
         let max_lag = args.max_lag;
@@ -277,89 +274,99 @@ async fn main() -> eyre::Result<()> {
                 )
                 .await;
             }
-            // The subscription is only a wake-up: it says how far the chain
-            // is.  Which block to prepare next is a cursor that advances by
-            // `block_interval`, so falling behind never skips a block — the
-            // backlog is worked through in order (unless `max_lag` says to
-            // drop it).  A header stream that lags drops headers; the cursor
-            // does not.
-            let mut head = 0u64;
-            let mut next = state.as_ref().and_then(|s| s.next_block()).unwrap_or(0);
-            loop {
-                if *preparation_shutdown.borrow() {
-                    break;
-                }
-                if next == 0 || next > head {
-                    match stream.next().await {
-                        Some(header) => {
-                            head = head.max(header);
-                            if next == 0 {
-                                // The stream only delivers this instance's
-                                // residue class, so the cursor starts aligned.
-                                next = header -
-                                    ((header + block_interval - block_residue) % block_interval);
-                                if let Some(state) = &state {
-                                    state.initialize(next)?;
+            // Headers bound how far ahead we may prepare. The durable cursor is
+            // advanced only by the prover, after committing each ordered output.
+            let next = state.as_ref().and_then(|s| s.next_block()).unwrap_or(0);
+            let blocks = futures::stream::try_unfold((0u64, next, stream), {
+                let state = state.clone();
+                move |(mut head, mut next, mut stream)| {
+                    let state = state.clone();
+                    async move {
+                        loop {
+                            if next == 0 || next > head {
+                                match stream.next().await {
+                                    Some(header) => {
+                                        head = head.max(header);
+                                        if next == 0 {
+                                            next = header -
+                                                ((header + block_interval - block_residue) %
+                                                    block_interval);
+                                            if let Some(state) = &state {
+                                                state.initialize(next)?;
+                                            }
+                                        }
+                                        continue;
+                                    }
+                                    None => return Ok::<_, eyre::Report>(None),
                                 }
                             }
-                            continue;
+                            while let Some(Some(header)) = stream.next().now_or_never() {
+                                head = head.max(header);
+                            }
+                            let number = next;
+                            next = next
+                                .checked_add(block_interval)
+                                .ok_or_else(|| eyre::eyre!("preparation block cursor overflow"))?;
+                            if max_lag > 0 && head - number > max_lag {
+                                warn!(
+                                    "skipping block {number}: {} behind the newest header",
+                                    head - number
+                                );
+                                continue;
+                            }
+                            return Ok(Some((number, (head, next, stream))));
                         }
-                        None => break,
                     }
                 }
-                // Absorb whatever headers are already queued so `head` is fresh.
-                while let Some(Some(header)) = stream.next().now_or_never() {
-                    head = head.max(header);
-                }
-
-                let number = next;
-                next += block_interval;
-                if max_lag > 0 && head - number > max_lag {
-                    warn!("skipping block {number}: {} behind the newest header", head - number);
-                    continue;
-                }
-
-                if let Some(state) = &state {
-                    if state.is_committed(number)? {
-                        if tx.send((number, None)).await.is_err() {
-                            break;
+            })
+            .boxed();
+            let persist_state = state.clone();
+            consecutive::run(
+                blocks,
+                prepare_concurrency,
+                tx,
+                preparation_shutdown,
+                move |number| {
+                    let executor = executor.clone();
+                    let state = state.clone();
+                    let alerting_client = alerting_client.clone();
+                    async move {
+                        if let Some(state) = &state {
+                            if state.is_committed(number)? {
+                                return Ok(None);
+                            }
+                            if let Some(bytes) = state.input(number)? {
+                                return Ok(Some(bincode::deserialize(&bytes)?));
+                            }
                         }
-                        continue;
-                    }
-                }
-                // Retry the same block; a transient preparation failure must not skip it.
-                loop {
-                    let prepared = match executor.wait_for_block(number).await {
-                        Ok(()) => {
-                            if let Some(state) = &state {
-                                match state.input(number)? {
-                                    Some(bytes) => Ok(bincode::deserialize(&bytes)?),
-                                    None => executor.prepare(number).await,
+                        let input = consecutive::retry(
+                            number,
+                            Duration::from_secs(5),
+                            move |number| {
+                                let executor = executor.clone();
+                                async move {
+                                    executor.wait_for_block(number).await?;
+                                    executor.prepare(number).await
                                 }
-                            } else {
-                                executor.prepare(number).await
-                            }
-                        }
-                        Err(err) => Err(err),
-                    };
-                    match prepared {
-                        Ok(client_input) => {
-                            if let Some(state) = &state {
-                                state.save_input(number, &bincode::serialize(&client_input)?)?;
-                            }
-                            if tx.send((number, Some(client_input))).await.is_err() {
-                                return Ok::<(), eyre::Report>(());
-                            }
-                            break;
-                        }
-                        Err(err) => {
-                            report_error(&alerting_client, number, err).await;
-                            tokio::time::sleep(Duration::from_secs(5)).await;
-                        }
+                            },
+                            move |number, err| {
+                                let alerting_client = alerting_client.clone();
+                                async move { report_error(&alerting_client, number, err).await }
+                            },
+                        )
+                        .await;
+                        Ok(Some(input))
                     }
-                }
-            }
-            Ok::<(), eyre::Report>(())
+                    .boxed()
+                },
+                move |number, input| {
+                    if let (Some(state), Some(input)) = (&persist_state, input) {
+                        state.save_input(number, &bincode::serialize(input)?)?;
+                    }
+                    Ok(())
+                },
+            )
+            .await
         })
     };
 
@@ -440,6 +447,8 @@ async fn main() -> eyre::Result<()> {
                         tokio::time::sleep(Duration::from_secs(3)).await;
                     };
                     if block.header.hash != client_input.current_block.header.hash_slow() {
+                        fetcher.abort();
+                        let _ = (&mut fetcher).await;
                         state.discard_inputs_from(number)?;
                         eyre::bail!(
                             "prepared inputs invalidated by a reorg; restart from durable cursor"
@@ -463,6 +472,7 @@ async fn main() -> eyre::Result<()> {
     }
     if *shutdown.borrow() {
         fetcher.abort();
+        let _ = fetcher.await;
     } else {
         fetcher.await??;
     }
