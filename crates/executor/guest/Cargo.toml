@@ -59,6 +59,9 @@ bn = { git = "https://github.com/ziren-patches/bn", branch = "patch-0.6.0", pack
 
 
 [features]
+# Cycle-tracker spans around every precompile call in the zkVM (profiling only:
+# the wrapper turns the precompile set into a map probed on every call).
+precompile-tracking = []
 optimism = [
     "dep:op-alloy-network",
     "dep:op-alloy-rpc-types",

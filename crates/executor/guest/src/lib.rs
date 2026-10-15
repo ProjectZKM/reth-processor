@@ -19,10 +19,21 @@ use executor::{EthClientExecutor, DESERIALZE_INPUTS};
 use io::EthClientExecutorInput;
 use std::sync::Arc;
 
+/// Verifies an Ethereum mainnet block and returns its hash, its state root and
+/// its parent's.
+///
+/// The proof commits only the block hash, so the rules the block runs under
+/// must not come from the prover: the input's chain must be mainnet, with no
+/// beneficiary override (a Clique-only setting that redirects block rewards).
 pub fn verify_block(input: &[u8]) -> (B256, B256, B256) {
     println!("cycle-tracker-report-start: {DESERIALZE_INPUTS}");
     let input = bincode::deserialize::<EthClientExecutorInput>(input).unwrap();
     println!("cycle-tracker-report-end: {DESERIALZE_INPUTS}");
+    assert!(
+        matches!(input.genesis, primitives::genesis::Genesis::Mainnet),
+        "the guest verifies Ethereum mainnet blocks only"
+    );
+    assert!(input.custom_beneficiary.is_none(), "mainnet blocks pay the header's beneficiary");
 
     // Execute the block.
     let executor = EthClientExecutor::eth(

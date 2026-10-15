@@ -73,7 +73,7 @@ impl EvmFactory for CustomEvmFactory {
             PrecompileSpecId::from_spec_id(input.cfg_env.spec),
         ));
 
-        #[cfg(target_os = "zkvm")]
+        #[cfg(all(target_os = "zkvm", feature = "precompile-tracking"))]
         precompiles.map_precompiles(|address, p| {
             use alloy_evm::precompiles::Precompile;
             use reth_evm::precompiles::PrecompileInput;
