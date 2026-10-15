@@ -47,11 +47,11 @@ primitives = { path = "./crates/primitives" }
 provider = { path = "./crates/provider" }
 
 # Ziren
-zkm-build = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/shamir-msm" }
-zkm-core-executor = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/shamir-msm" }
-zkm-prover = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/shamir-msm" }
-zkm-cuda = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/shamir-msm" }
-zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/shamir-msm" }
+zkm-build = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/glv-msm" }
+zkm-core-executor = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/glv-msm" }
+zkm-prover = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/glv-msm" }
+zkm-cuda = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/glv-msm" }
+zkm-sdk = { git = "https://github.com/ProjectZKM/Ziren", branch = "perf/glv-msm" }
 
 # reth
 reth-primitives-traits = { git = "https://github.com/paradigmxyz/reth", tag = "v1.9.3", default-features = false }

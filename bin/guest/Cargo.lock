@@ -3356,7 +3356,7 @@ dependencies = [
 [[package]]
 name = "revm"
 version = "31.0.2"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "revm-bytecode",
  "revm-context",
@@ -3374,7 +3374,7 @@ dependencies = [
 [[package]]
 name = "revm-bytecode"
 version = "7.1.1"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "bitvec",
  "phf",
@@ -3385,7 +3385,7 @@ dependencies = [
 [[package]]
 name = "revm-context"
 version = "11.0.2"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "alloy-consensus 1.0.41",
  "bitvec",
@@ -3402,7 +3402,7 @@ dependencies = [
 [[package]]
 name = "revm-context-interface"
 version = "12.0.1"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "alloy-consensus 1.0.41",
  "alloy-eip2930",
@@ -3418,7 +3418,7 @@ dependencies = [
 [[package]]
 name = "revm-database"
 version = "9.0.6"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "alloy-eips 1.0.41",
  "revm-bytecode",
@@ -3431,7 +3431,7 @@ dependencies = [
 [[package]]
 name = "revm-database-interface"
 version = "8.0.5"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "auto_impl",
  "either",
@@ -3443,7 +3443,7 @@ dependencies = [
 [[package]]
 name = "revm-handler"
 version = "12.0.2"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "auto_impl",
  "derive-where",
@@ -3461,7 +3461,7 @@ dependencies = [
 [[package]]
 name = "revm-inspector"
 version = "12.0.2"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "auto_impl",
  "either",
@@ -3477,7 +3477,7 @@ dependencies = [
 [[package]]
 name = "revm-interpreter"
 version = "29.0.1"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "revm-bytecode",
  "revm-context-interface",
@@ -3489,7 +3489,7 @@ dependencies = [
 [[package]]
 name = "revm-precompile"
 version = "29.0.1"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "ark-bls12-381",
  "ark-bn254",
@@ -3510,7 +3510,7 @@ dependencies = [
 [[package]]
 name = "revm-primitives"
 version = "21.0.2"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "alloy-primitives",
  "num_enum",
@@ -3521,7 +3521,7 @@ dependencies = [
 [[package]]
 name = "revm-state"
 version = "8.1.1"
-source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#66e8f7c45a5145e2b842c1d06c651e6d0e66a307"
+source = "git+https://github.com/ziren-patches/revm?branch=patch-31.0.2-mips32-dispatch#2a9844a05fc7541c05a067f5d3e32fc99489cd6d"
 dependencies = [
  "bitflags",
  "revm-bytecode",
@@ -3974,7 +3974,7 @@ dependencies = [
 [[package]]
 name = "substrate-bn"
 version = "0.6.0"
-source = "git+https://github.com/ziren-patches/bn?branch=patch-0.6.0#0dfeeb1b7bfc21941b6e4964d678abd094a54a6f"
+source = "git+https://github.com/ziren-patches/bn?branch=patch-0.6.0#509192f90ef14511bfa64681b2d7c8333df13979"
 dependencies = [
  "bytemuck",
  "byteorder",
