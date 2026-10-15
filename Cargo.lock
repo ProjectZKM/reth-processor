@@ -565,7 +565,7 @@ checksum = "489f1620bb7e2483fb5819ed01ab6edc1d2f93939dce35a5695085a1afd1d699"
 dependencies = [
  "alloy-sol-macro-input",
  "const-hex",
- "heck 0.5.0",
+ "heck",
  "indexmap 2.13.0",
  "proc-macro-error2",
  "proc-macro2",
@@ -583,7 +583,7 @@ checksum = "56cef806ad22d4392c5fc83cf8f2089f988eb99c7067b4e0c6f1971fc1cca318"
 dependencies = [
  "const-hex",
  "dunce",
- "heck 0.5.0",
+ "heck",
  "macro-string",
  "proc-macro2",
  "quote",
@@ -765,7 +765,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -776,7 +776,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1298,7 +1298,7 @@ dependencies = [
  "bitflags 2.11.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.13.0",
  "log",
  "prettyplease",
  "proc-macro2",
@@ -1686,7 +1686,7 @@ version = "4.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1110bd8a634a1ab8cb04345d8d878267d57c3cf1b38d91b71af6686408bbca6a"
 dependencies = [
- "heck 0.5.0",
+ "heck",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -2496,7 +2496,7 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1e6a265c649f3f5979b601d26f1d05ada116434c87741c9493cb56218f76cbc"
 dependencies = [
- "heck 0.5.0",
+ "heck",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -2579,7 +2579,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3138,12 +3138,6 @@ dependencies = [
  "serde",
  "serde_core",
 ]
-
-[[package]]
-name = "heck"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "heck"
@@ -4205,12 +4199,6 @@ dependencies = [
 
 [[package]]
 name = "multimap"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
-
-[[package]]
-name = "multimap"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d87ecb2933e8aeadb3e3a02b828fed80a7528047e68b4f424523a0981a3a084"
@@ -4275,7 +4263,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5458,10 +5446,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.4.1",
+ "heck",
  "itertools 0.10.5",
  "log",
- "multimap 0.8.3",
+ "multimap",
  "once_cell",
  "petgraph 0.6.5",
  "prettyplease",
@@ -5478,10 +5466,10 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.4.1",
+ "heck",
  "itertools 0.14.0",
  "log",
- "multimap 0.10.1",
+ "multimap",
  "once_cell",
  "petgraph 0.7.1",
  "prettyplease",
@@ -6811,7 +6799,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7359,7 +7347,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a766e1110788c36f4fa1c2b71b387a7815aa65f88ce0229841826633d93723e"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7441,7 +7429,7 @@ version = "0.26.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
 dependencies = [
- "heck 0.5.0",
+ "heck",
  "proc-macro2",
  "quote",
  "rustversion",
@@ -7454,7 +7442,7 @@ version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
 dependencies = [
- "heck 0.5.0",
+ "heck",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -7626,7 +7614,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8917,7 +8905,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea61de684c3ea68cb082b7a88508a8b27fcc8b797d738bfc99a82facf1d752dc"
 dependencies = [
  "anyhow",
- "heck 0.5.0",
+ "heck",
  "wit-parser",
 ]
 
@@ -8928,7 +8916,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7c566e0f4b284dd6561c786d9cb0142da491f46a9fbed79ea69cdad5db17f21"
 dependencies = [
  "anyhow",
- "heck 0.5.0",
+ "heck",
  "indexmap 2.13.0",
  "prettyplease",
  "syn 2.0.117",
@@ -9213,7 +9201,7 @@ dependencies = [
 [[package]]
 name = "zkm-build"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -9224,7 +9212,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-executor"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "anyhow",
  "bincode",
@@ -9268,7 +9256,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-jit"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "dynasmrt",
  "hashbrown 0.14.5",
@@ -9285,7 +9273,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-machine"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -9337,7 +9325,7 @@ dependencies = [
 [[package]]
 name = "zkm-cuda"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "ctrlc",
@@ -9355,7 +9343,7 @@ dependencies = [
 [[package]]
 name = "zkm-curves"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "cfg-if",
  "curve25519-dalek",
@@ -9379,7 +9367,7 @@ dependencies = [
 [[package]]
 name = "zkm-derive"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -9389,7 +9377,7 @@ dependencies = [
 [[package]]
 name = "zkm-lib"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -9402,7 +9390,7 @@ dependencies = [
 [[package]]
 name = "zkm-pcs"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "arrayref",
  "bincode",
@@ -9447,7 +9435,7 @@ dependencies = [
 [[package]]
 name = "zkm-poly"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "itertools 0.13.0",
  "p3-field",
@@ -9456,7 +9444,7 @@ dependencies = [
 [[package]]
 name = "zkm-primitives"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "blake3",
@@ -9476,7 +9464,7 @@ dependencies = [
 [[package]]
 name = "zkm-prover"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "anyhow",
  "bincode",
@@ -9516,7 +9504,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-circuit"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -9549,7 +9537,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-compiler"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -9570,7 +9558,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-core"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "backtrace",
  "bincode",
@@ -9609,7 +9597,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-derive"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -9618,7 +9606,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-gnark-ffi"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "anyhow",
  "bincode",
@@ -9642,7 +9630,7 @@ dependencies = [
 [[package]]
 name = "zkm-sdk"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "alloy-primitives",
  "anyhow",
@@ -9689,7 +9677,7 @@ dependencies = [
 [[package]]
 name = "zkm-zkvm"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "cfg-if",

@@ -356,7 +356,7 @@ dependencies = [
  "alloy-rlp",
  "alloy-serde",
  "alloy-sol-types",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "serde",
  "serde_json",
  "serde_with",
@@ -4504,7 +4504,7 @@ dependencies = [
 [[package]]
 name = "zkm-lib"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -4517,7 +4517,7 @@ dependencies = [
 [[package]]
 name = "zkm-primitives"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "blake3",
@@ -4537,7 +4537,7 @@ dependencies = [
 [[package]]
 name = "zkm-zkvm"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren#31f6e8ebab62025d1c8350ae35e2636e3857a024"
 dependencies = [
  "bincode",
  "cfg-if",
