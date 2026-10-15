@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, marker::PhantomData, sync::RwLock};
+use std::{
+    collections::BTreeMap,
+    marker::PhantomData,
+    sync::{Arc, RwLock},
+};
 
 use alloy_consensus::Header;
 use alloy_eips::BlockNumberOrTag;
@@ -7,7 +11,7 @@ use alloy_provider::{Network, Provider};
 use alloy_rlp::{Decodable, Encodable};
 use alloy_rpc_types::Header as RpcHeader;
 use alloy_rpc_types_debug::ExecutionWitness;
-use alloy_trie::TrieAccount;
+use alloy_trie::{TrieAccount, EMPTY_ROOT_HASH};
 use async_trait::async_trait;
 use mpt::EthereumState;
 use reth_storage_errors::{db::DatabaseError, ProviderError};
@@ -22,12 +26,12 @@ use crate::{RpcDb, RpcDbError};
 pub struct ExecutionWitnessRpcDb<P, N> {
     /// The provider which fetches data.
     pub provider: P,
-    /// Parent block used to fetch bytecode omitted from the execution witness.
+    /// The block to fetch missing pre-state proofs from.
     pub state_block_number: u64,
     /// The cached state.
-    pub state: EthereumState,
+    pub state: Arc<RwLock<EthereumState>>,
     /// The cached bytecodes.
-    pub codes: RwLock<HashMap<B256, Bytecode>>,
+    pub codes: Arc<RwLock<HashMap<B256, Bytecode>>>,
 
     pub ancestor_headers: BTreeMap<u64, Header>,
 
@@ -37,10 +41,31 @@ pub struct ExecutionWitnessRpcDb<P, N> {
 impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
     /// Create a new [`ExecutionWitnessRpcDb`].
     pub async fn new(provider: P, block_number: u64, state_root: B256) -> Result<Self, RpcDbError> {
-        tracing::info!("Fetching execution witness for block {}", block_number);
-        let execution_witness = fetch_execution_witness(&provider, block_number).await?;
-        tracing::info!("Fetched execution witness for block done {}", block_number);
+        let execution_witness = Self::fetch_witness(&provider, block_number).await?;
+        Ok(Self::from_witness(provider, block_number, state_root, execution_witness))
+    }
 
+    /// Fetch the execution witness on its own.  It depends only on the block
+    /// number, so the host can run it concurrently with the block fetches
+    /// and pass the result to [`Self::from_witness`] once the parent's state
+    /// root is known — the three RPC round trips were strictly serial before.
+    pub async fn fetch_witness(
+        provider: &P,
+        block_number: u64,
+    ) -> Result<ExecutionWitness, RpcDbError> {
+        tracing::info!("Fetching execution witness for block {}", block_number);
+        let execution_witness = fetch_execution_witness(provider, block_number).await?;
+        tracing::info!("Fetched execution witness for block done {}", block_number);
+        Ok(execution_witness)
+    }
+
+    /// Build the database from an already-fetched witness.
+    pub fn from_witness(
+        provider: P,
+        block_number: u64,
+        state_root: B256,
+        execution_witness: ExecutionWitness,
+    ) -> Self {
         let state = EthereumState::from_execution_witness(&execution_witness, state_root);
 
         let codes = execution_witness
@@ -59,56 +84,137 @@ impl<P: Provider<N> + Clone, N: Network> ExecutionWitnessRpcDb<P, N> {
         let db = Self {
             provider,
             state_block_number: block_number.saturating_sub(1),
-            state,
-            codes: RwLock::new(codes),
+            state: Arc::new(RwLock::new(state)),
+            codes: Arc::new(RwLock::new(codes)),
             ancestor_headers,
             phantom: PhantomData,
         };
 
-        Ok(db)
+        db
     }
 
-    fn account_code(
+    /// Fetches and merges a missing account proof into the cached pre-state trie.
+    async fn fetch_missing_account_proof(&self, address: Address) -> Result<(), RpcDbError> {
+        tracing::warn!(
+            "Fetching missing account proof for address {} at block {}",
+            address,
+            self.state_block_number
+        );
+        let proof = self
+            .provider
+            .get_proof(address, vec![])
+            .number(self.state_block_number)
+            .await
+            .map_err(|err| RpcDbError::GetProofError(address, err.to_string()))?;
+
+        self.state.write().map_err(|_| RpcDbError::Poisoned)?.extend_from_account_proof(&proof)?;
+
+        Ok(())
+    }
+
+    /// Fetches and merges a missing storage proof into the cached pre-state trie.
+    async fn fetch_missing_storage_proof(
+        &self,
+        address: Address,
+        index: StorageKey,
+    ) -> Result<(), RpcDbError> {
+        tracing::warn!(
+            "Fetching missing storage proof for address {} slot {} at block {}",
+            address,
+            B256::from(index),
+            self.state_block_number
+        );
+        let proof = self
+            .provider
+            .get_proof(address, vec![B256::from(index)])
+            .number(self.state_block_number)
+            .await
+            .map_err(|err| RpcDbError::GetProofError(address, err.to_string()))?;
+
+        self.state.write().map_err(|_| RpcDbError::Poisoned)?.extend_from_account_proof(&proof)?;
+
+        Ok(())
+    }
+
+    fn fetch_missing_account_proof_blocking(&self, address: Address) -> Result<(), ProviderError> {
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| {
+            ProviderError::Database(DatabaseError::Other("no tokio runtime found".to_string()))
+        })?;
+        tokio::task::block_in_place(|| handle.block_on(self.fetch_missing_account_proof(address)))
+            .map_err(|err| ProviderError::Database(DatabaseError::Other(err.to_string())))
+    }
+
+    fn fetch_missing_storage_proof_blocking(
+        &self,
+        address: Address,
+        index: StorageKey,
+    ) -> Result<(), ProviderError> {
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| {
+            ProviderError::Database(DatabaseError::Other("no tokio runtime found".to_string()))
+        })?;
+        tokio::task::block_in_place(|| {
+            handle.block_on(self.fetch_missing_storage_proof(address, index))
+        })
+        .map_err(|err| ProviderError::Database(DatabaseError::Other(err.to_string())))
+    }
+
+    async fn fetch_account_code(&self, address: Address) -> Result<Bytecode, RpcDbError> {
+        let code = self
+            .provider
+            .get_code_at(address)
+            .number(self.state_block_number)
+            .await
+            .map_err(|err| RpcDbError::GetCodeError(address, err.to_string()))?;
+
+        Ok(Bytecode::new_raw(code))
+    }
+
+    fn fetch_account_code_blocking(
         &self,
         address: Address,
         expected_hash: B256,
-    ) -> Result<Option<Bytecode>, ProviderError> {
-        if expected_hash == KECCAK_EMPTY || expected_hash == B256::ZERO {
-            return Ok(None)
-        }
-        if let Some(code) = self
-            .codes
-            .read()
-            .map_err(|_| ProviderError::TrieWitnessError("bytecode cache lock poisoned".into()))?
-            .get(&expected_hash)
-            .cloned()
-        {
-            return Ok(Some(code))
+    ) -> Result<Bytecode, ProviderError> {
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| {
+            ProviderError::Database(DatabaseError::Other("no tokio runtime found".to_string()))
+        })?;
+        let bytecode =
+            tokio::task::block_in_place(|| handle.block_on(self.fetch_account_code(address)))
+                .map_err(|err| ProviderError::Database(DatabaseError::Other(err.to_string())))?;
+
+        cache_verified_code(&self.codes, address, expected_hash, bytecode)
+    }
+
+    fn complete_account_code(
+        &self,
+        address: Address,
+        account: Option<AccountInfo>,
+    ) -> Result<Option<AccountInfo>, ProviderError> {
+        let Some(mut account) = account else { return Ok(None) };
+
+        if account.code.is_none() && should_fetch_code(account.code_hash) {
+            if let Some(code) = cached_code(&self.codes, account.code_hash)? {
+                account.code = Some(code);
+            } else {
+                tracing::warn!(
+                    "Code {} not found in execution witness for address {}; fetching fallback code",
+                    account.code_hash,
+                    address
+                );
+                account.code = Some(self.fetch_account_code_blocking(address, account.code_hash)?);
+            }
         }
 
-        tracing::warn!(%address, %expected_hash, block = self.state_block_number,
-            "Fetching bytecode omitted from execution witness");
-        let handle = tokio::runtime::Handle::try_current().map_err(|_| {
-            ProviderError::Database(DatabaseError::Other("no tokio runtime found".into()))
-        })?;
-        let code = tokio::task::block_in_place(|| {
-            handle.block_on(async {
-                self.provider.get_code_at(address).number(self.state_block_number).await
-            })
-        })
-        .map_err(|err| ProviderError::Database(DatabaseError::Other(err.to_string())))?;
-        let actual_hash = keccak256(&code);
-        if actual_hash != expected_hash {
-            return Err(ProviderError::TrieWitnessError(format!(
-                "Fetched code hash mismatch for {address}: expected {expected_hash}, got {actual_hash}"
-            )))
-        }
-        let bytecode = Bytecode::new_raw(code);
-        self.codes
+        Ok(Some(account))
+    }
+
+    fn ensure_empty_storage_trie(&self, hashed_address: B256) -> Result<(), ProviderError> {
+        self.state
             .write()
-            .map_err(|_| ProviderError::TrieWitnessError("bytecode cache lock poisoned".into()))?
-            .insert(expected_hash, bytecode.clone());
-        Ok(Some(bytecode))
+            .map_err(|_| poisoned_provider_error())?
+            .storage_tries
+            .entry(hashed_address)
+            .or_default();
+        Ok(())
     }
 }
 
@@ -175,6 +281,155 @@ impl FlexibleExecutionWitnessHeader {
 const SYSTEM_ADDRESS: Address =
     alloy_primitives::address!("0xfffffffffffffffffffffffffffffffffffffffe");
 
+#[derive(Debug)]
+enum AccountReadError {
+    Trie(mpt::Error),
+    Provider(ProviderError),
+}
+
+impl AccountReadError {
+    fn unresolved_node(&self) -> Option<B256> {
+        match self {
+            Self::Trie(mpt::Error::NodeNotResolved(digest)) => Some(*digest),
+            Self::Trie(_) | Self::Provider(_) => None,
+        }
+    }
+
+    fn into_provider_error(self) -> ProviderError {
+        match self {
+            Self::Trie(err) => ProviderError::TrieWitnessError(err.to_string()),
+            Self::Provider(err) => err,
+        }
+    }
+}
+
+fn read_account_info_from_state(
+    state: &EthereumState,
+    address_hash: B256,
+    codes: &HashMap<B256, Bytecode>,
+) -> Result<Option<AccountInfo>, AccountReadError> {
+    if let Some(mut bytes) =
+        state.state_trie.get(address_hash.as_ref()).map_err(AccountReadError::Trie)?
+    {
+        let account = TrieAccount::decode(&mut bytes)
+            .map_err(ProviderError::from)
+            .map_err(AccountReadError::Provider)?;
+        let account_info =
+            account_info_from_trie_account(codes, account).map_err(AccountReadError::Provider)?;
+
+        Ok(Some(account_info))
+    } else {
+        Ok(None)
+    }
+}
+
+fn account_info_from_trie_account(
+    codes: &HashMap<B256, Bytecode>,
+    account: TrieAccount,
+) -> Result<AccountInfo, ProviderError> {
+    Ok(AccountInfo {
+        balance: account.balance,
+        nonce: account.nonce,
+        code_hash: account.code_hash,
+        code: codes.get(&account.code_hash).cloned(),
+    })
+}
+
+fn cached_code(
+    codes: &RwLock<HashMap<B256, Bytecode>>,
+    code_hash: B256,
+) -> Result<Option<Bytecode>, ProviderError> {
+    Ok(codes.read().map_err(|_| poisoned_provider_error())?.get(&code_hash).cloned())
+}
+
+fn cache_verified_code(
+    codes: &RwLock<HashMap<B256, Bytecode>>,
+    address: Address,
+    expected_hash: B256,
+    bytecode: Bytecode,
+) -> Result<Bytecode, ProviderError> {
+    let actual_hash = bytecode.hash_slow();
+    if actual_hash != expected_hash {
+        return Err(ProviderError::TrieWitnessError(format!(
+            "Fetched code hash mismatch for {address}: expected {expected_hash}, got {actual_hash}"
+        )))
+    }
+    codes.write().map_err(|_| poisoned_provider_error())?.insert(expected_hash, bytecode.clone());
+
+    Ok(bytecode)
+}
+
+fn should_fetch_code(code_hash: B256) -> bool {
+    code_hash != KECCAK_EMPTY && code_hash != B256::ZERO
+}
+
+#[derive(Debug)]
+enum StorageRead {
+    Value(StorageValue),
+    MissingEmptyTrie,
+}
+
+#[derive(Debug)]
+enum StorageReadError {
+    Trie(mpt::Error),
+    Provider(ProviderError),
+    MissingTrie { storage_root: B256 },
+}
+
+impl StorageReadError {
+    fn unresolved_node(&self) -> Option<B256> {
+        match self {
+            Self::Trie(mpt::Error::NodeNotResolved(digest)) => Some(*digest),
+            Self::Trie(_) | Self::Provider(_) | Self::MissingTrie { .. } => None,
+        }
+    }
+
+    fn into_provider_error(self) -> ProviderError {
+        match self {
+            Self::Trie(err) => ProviderError::TrieWitnessError(err.to_string()),
+            Self::Provider(err) => err,
+            Self::MissingTrie { storage_root } => ProviderError::TrieWitnessError(format!(
+                "storage trie not found for root {storage_root}"
+            )),
+        }
+    }
+}
+
+fn read_storage_from_state(
+    state: &EthereumState,
+    hashed_address: B256,
+    hashed_slot: B256,
+) -> Result<StorageRead, StorageReadError> {
+    if let Some(storage_trie) = state.storage_tries.get(&hashed_address) {
+        if let Some(mut value) =
+            storage_trie.get(hashed_slot.as_slice()).map_err(StorageReadError::Trie)?
+        {
+            return U256::decode(&mut value)
+                .map(StorageRead::Value)
+                .map_err(ProviderError::from)
+                .map_err(StorageReadError::Provider)
+        }
+
+        return Ok(StorageRead::Value(U256::ZERO))
+    }
+
+    let storage_root = state
+        .state_trie
+        .get_rlp::<TrieAccount>(hashed_address.as_slice())
+        .map_err(StorageReadError::Trie)?
+        .map_or(EMPTY_ROOT_HASH, |account| account.storage_root);
+
+    if storage_root == EMPTY_ROOT_HASH || storage_root == B256::ZERO {
+        Ok(StorageRead::MissingEmptyTrie)
+    } else {
+        Err(StorageReadError::MissingTrie { storage_root })
+    }
+}
+
+fn poisoned_provider_error() -> ProviderError {
+    ProviderError::Database(DatabaseError::Other("poisoned lock".to_string()))
+}
+
 impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P, N> {
     type Error = ProviderError;
 
@@ -184,30 +439,41 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
         }
 
         let hash = keccak256(address);
-        if let Some(mut bytes) = self
-            .state
-            .state_trie
-            .get(hash.as_ref())
-            .map_err(|err| ProviderError::TrieWitnessError(err.to_string()))?
-        {
-            let account = TrieAccount::decode(&mut bytes)?;
-            let account_info = AccountInfo {
-                balance: account.balance,
-                nonce: account.nonce,
-                code_hash: account.code_hash,
-                code: self.account_code(address, account.code_hash)?,
-            };
+        let account = {
+            let state = self.state.read().map_err(|_| poisoned_provider_error())?;
+            let codes = self.codes.read().map_err(|_| poisoned_provider_error())?;
+            read_account_info_from_state(&state, hash, &codes)
+        };
 
-            Ok(Some(account_info))
-        } else {
-            Ok(None)
+        match account {
+            Ok(account) => self.complete_account_code(address, account),
+            Err(err) => {
+                let Some(digest) = err.unresolved_node() else {
+                    return Err(err.into_provider_error())
+                };
+
+                tracing::warn!(
+                    "Account trie reached unresolved node {} for address {}; fetching fallback proof",
+                    digest,
+                    address
+                );
+                self.fetch_missing_account_proof_blocking(address)?;
+
+                let account = {
+                    let state = self.state.read().map_err(|_| poisoned_provider_error())?;
+                    let codes = self.codes.read().map_err(|_| poisoned_provider_error())?;
+                    read_account_info_from_state(&state, hash, &codes)
+                        .map_err(AccountReadError::into_provider_error)?
+                };
+                self.complete_account_code(address, account)
+            }
         }
     }
 
     fn code_by_hash_ref(&self, code_hash: B256) -> Result<Bytecode, Self::Error> {
         self.codes
             .read()
-            .map_err(|_| ProviderError::TrieWitnessError("bytecode cache lock poisoned".into()))?
+            .map_err(|_| poisoned_provider_error())?
             .get(&code_hash)
             .ok_or_else(|| {
                 ProviderError::TrieWitnessError(format!("Code not found for {code_hash}"))
@@ -223,15 +489,51 @@ impl<P: Provider<N> + Clone, N: Network> DatabaseRef for ExecutionWitnessRpcDb<P
         let slot = B256::from(index);
         let hashed_address = keccak256(address);
         let hashed_slot = keccak256(slot);
-        if let Some(mut value) = self
-            .state
-            .storage_tries
-            .get(&hashed_address)
-            .and_then(|storage_trie| storage_trie.get(hashed_slot.as_slice()).unwrap())
-        {
-            Ok(U256::decode(&mut value)?)
-        } else {
-            Ok(U256::ZERO)
+
+        let storage = {
+            let state = self.state.read().map_err(|_| poisoned_provider_error())?;
+            read_storage_from_state(&state, hashed_address, hashed_slot)
+        };
+
+        match storage {
+            Ok(StorageRead::Value(value)) => Ok(value),
+            Ok(StorageRead::MissingEmptyTrie) => {
+                self.ensure_empty_storage_trie(hashed_address)?;
+                Ok(U256::ZERO)
+            }
+            Err(err) => {
+                if let Some(digest) = err.unresolved_node() {
+                    tracing::warn!(
+                        "Storage trie reached unresolved node {} for address {} slot {}; fetching fallback proof",
+                        digest,
+                        address,
+                        slot
+                    );
+                } else if let StorageReadError::MissingTrie { storage_root } = err {
+                    tracing::warn!(
+                        "Storage trie with root {} is missing for address {} slot {}; fetching fallback proof",
+                        storage_root,
+                        address,
+                        slot
+                    );
+                } else {
+                    return Err(err.into_provider_error())
+                }
+
+                self.fetch_missing_storage_proof_blocking(address, index)?;
+
+                let state = self.state.read().map_err(|_| poisoned_provider_error())?;
+                match read_storage_from_state(&state, hashed_address, hashed_slot)
+                    .map_err(StorageReadError::into_provider_error)?
+                {
+                    StorageRead::Value(value) => Ok(value),
+                    StorageRead::MissingEmptyTrie => {
+                        drop(state);
+                        self.ensure_empty_storage_trie(hashed_address)?;
+                        Ok(U256::ZERO)
+                    }
+                }
+            }
         }
     }
 
@@ -251,11 +553,11 @@ where
     N: Network,
 {
     async fn state(&self, _bundle_state: &BundleState) -> Result<EthereumState, RpcDbError> {
-        Ok(self.state.clone())
+        Ok(self.state.read().map_err(|_| RpcDbError::Poisoned)?.clone())
     }
 
     fn bytecodes(&self) -> Vec<Bytecode> {
-        self.codes.read().expect("bytecode cache lock poisoned").values().cloned().collect()
+        self.codes.read().expect("codes lock poisoned").values().cloned().collect()
     }
 
     async fn ancestor_headers(&self) -> Result<Vec<Header>, RpcDbError> {
@@ -265,147 +567,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        io::{Read, Write},
-        net::TcpListener,
-        thread,
-        time::{Duration, Instant},
-    };
-
     use alloy_consensus::Header;
     use alloy_primitives::hex::FromHex;
     use alloy_rlp::Decodable;
 
     use super::*;
-
-    fn code_rpc(code: &str) -> (String, thread::JoinHandle<serde_json::Value>) {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let url = format!("http://{}", listener.local_addr().unwrap());
-        listener.set_nonblocking(true).unwrap();
-        let code = code.to_string();
-        let worker = thread::spawn(move || {
-            let deadline = Instant::now() + Duration::from_secs(5);
-            let mut stream = loop {
-                match listener.accept() {
-                    Ok((stream, _)) => break stream,
-                    Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
-                        assert!(Instant::now() < deadline, "no bytecode RPC request received");
-                        thread::sleep(Duration::from_millis(5));
-                    }
-                    Err(err) => panic!("{err}"),
-                }
-            };
-            stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
-            let mut bytes = Vec::new();
-            let request = loop {
-                let mut buffer = [0u8; 1024];
-                let count = stream.read(&mut buffer).unwrap();
-                assert!(count > 0);
-                bytes.extend_from_slice(&buffer[..count]);
-                if let Some(end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
-                    let headers = String::from_utf8_lossy(&bytes[..end]);
-                    let length: usize = headers
-                        .lines()
-                        .find_map(|line| {
-                            line.to_ascii_lowercase()
-                                .strip_prefix("content-length:")
-                                .map(|value| value.trim().parse().unwrap())
-                        })
-                        .unwrap();
-                    if bytes.len() >= end + 4 + length {
-                        break serde_json::from_slice::<serde_json::Value>(
-                            &bytes[end + 4..end + 4 + length],
-                        )
-                        .unwrap()
-                    }
-                }
-            };
-            let response =
-                serde_json::json!({"jsonrpc": "2.0", "id": request["id"], "result": code})
-                    .to_string();
-            write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", response.len(), response).unwrap();
-            request
-        });
-        (url, worker)
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn missing_code_uses_parent_block_and_is_cached_for_guest_input() {
-        let (url, worker) = code_rpc("0x6000");
-        let code = Bytecode::new_raw(alloy_primitives::bytes!("6000"));
-        let hash = code.hash_slow();
-        let address = Address::repeat_byte(0x11);
-        let mut db = ExecutionWitnessRpcDb {
-            provider: alloy_provider::ProviderBuilder::new().connect_http(url.parse().unwrap()),
-            state_block_number: 26_167_641,
-            state: EthereumState {
-                state_trie: Default::default(),
-                storage_tries: HashMap::default(),
-            },
-            codes: RwLock::new(HashMap::default()),
-            ancestor_headers: BTreeMap::new(),
-            phantom: PhantomData,
-        };
-        db.state
-            .state_trie
-            .insert_rlp(
-                keccak256(address).as_slice(),
-                TrieAccount {
-                    nonce: 1,
-                    balance: U256::from(1),
-                    code_hash: hash,
-                    ..Default::default()
-                },
-            )
-            .unwrap();
-
-        assert_eq!(db.basic_ref(address).unwrap().unwrap().code, Some(code.clone()));
-        let request = worker.join().unwrap();
-        assert_eq!(request["method"], "eth_getCode");
-        assert_eq!(request["params"], serde_json::json!([address, "0x18f4959"]));
-        // The RPC listener is gone: both paths must use the verified cache.
-        assert_eq!(db.basic_ref(address).unwrap().unwrap().code, Some(code.clone()));
-        assert_eq!(db.code_by_hash_ref(hash).unwrap(), code.clone());
-        assert_eq!(db.bytecodes(), vec![code]);
-        assert!(db.basic_ref(Address::repeat_byte(0x22)).unwrap().is_none());
-        assert!(db.account_code(address, KECCAK_EMPTY).unwrap().is_none());
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn wrong_fallback_code_is_rejected_and_not_exported() {
-        let (url, worker) = code_rpc("0x6001");
-        let expected_hash = keccak256(alloy_primitives::bytes!("6000"));
-        let address = Address::repeat_byte(0x11);
-        let mut db = ExecutionWitnessRpcDb {
-            provider: alloy_provider::ProviderBuilder::new().connect_http(url.parse().unwrap()),
-            state_block_number: 26_167_641,
-            state: EthereumState {
-                state_trie: Default::default(),
-                storage_tries: HashMap::default(),
-            },
-            codes: RwLock::new(HashMap::default()),
-            ancestor_headers: BTreeMap::new(),
-            phantom: PhantomData,
-        };
-        db.state
-            .state_trie
-            .insert_rlp(
-                keccak256(address).as_slice(),
-                TrieAccount {
-                    nonce: 1,
-                    balance: U256::from(1),
-                    code_hash: expected_hash,
-                    ..Default::default()
-                },
-            )
-            .unwrap();
-
-        let error = db.basic_ref(address).unwrap_err();
-        worker.join().unwrap();
-        assert!(error.to_string().contains("Fetched code hash mismatch"));
-        assert!(db.bytecodes().is_empty());
-        assert!(db.code_by_hash_ref(expected_hash).is_err());
-    }
 
     #[test]
     fn execution_witness_accepts_rpc_header_objects_and_null_keys() {

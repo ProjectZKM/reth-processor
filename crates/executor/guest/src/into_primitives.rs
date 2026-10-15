@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use alloy_consensus::{Block, Header, TxEnvelope};
+use alloy_consensus::{Block, BlockHeader, Header, TxEnvelope};
 use alloy_network::{Ethereum, Network};
-use reth_chainspec::{ChainSpec, EthChainSpec, NamedChain};
+use alloy_primitives::Bloom;
+use reth_chainspec::{ChainSpec, EthChainSpec, EthereumHardforks, NamedChain};
 use reth_consensus::HeaderValidator;
 use reth_consensus_common::validation::validate_body_against_header;
 use reth_errors::ConsensusError;
@@ -39,11 +40,14 @@ pub trait BlockValidator<CS>: NodePrimitives {
         chain_spec: Arc<CS>,
     ) -> Result<(), ConsensusError>;
 
+    /// Validates the execution output against the block, and returns the
+    /// logs bloom that validation checked equal to the receipts' blooms, if
+    /// it checked one, so the caller need not accumulate it again.
     fn validate_block_post_execution(
         block: &RecoveredBlock<Self::Block>,
         chain_spec: Arc<CS>,
         execution_output: &BlockExecutionOutput<Self::Receipt>,
-    ) -> Result<(), ConsensusError>;
+    ) -> Result<Option<Bloom>, ConsensusError>;
 }
 
 impl IntoPrimitives<Ethereum> for EthPrimitives {
@@ -104,13 +108,17 @@ impl BlockValidator<ChainSpec> for EthPrimitives {
         block: &RecoveredBlock<Self::Block>,
         chain_spec: Arc<ChainSpec>,
         execution_output: &BlockExecutionOutput<Self::Receipt>,
-    ) -> Result<(), ConsensusError> {
+    ) -> Result<Option<Bloom>, ConsensusError> {
         reth_ethereum_consensus::validate_block_post_execution(
             block,
             &chain_spec,
             &execution_output.result.receipts,
             &execution_output.result.requests,
-        )
+        )?;
+        // From Byzantium on, `verify_receipts` has compared the bloom of the
+        // receipts with the header's.
+        let header = block.header();
+        Ok(chain_spec.is_byzantium_active_at_block(header.number()).then(|| header.logs_bloom()))
     }
 }
 
@@ -184,12 +192,13 @@ impl BlockValidator<reth_optimism_chainspec::OpChainSpec>
         block: &RecoveredBlock<Self::Block>,
         chain_spec: Arc<reth_optimism_chainspec::OpChainSpec>,
         execution_output: &BlockExecutionOutput<Self::Receipt>,
-    ) -> Result<(), ConsensusError> {
+    ) -> Result<Option<Bloom>, ConsensusError> {
         reth_optimism_consensus::validate_block_post_execution(
             block.header(),
             &chain_spec,
             &execution_output.result,
-        )
+        )?;
+        Ok(None)
     }
 }
 

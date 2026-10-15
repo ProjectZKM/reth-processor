@@ -11,13 +11,13 @@ use reth_evm::{
 use reth_evm_ethereum::EthEvmConfig;
 use reth_execution_types::ExecutionOutcome;
 use reth_primitives_traits::Block;
-use reth_trie::KeccakKeyHasher;
 use revm::{database::WrapDatabaseRef, install_crypto};
 use revm_primitives::Address;
 
 use crate::{
     custom::{CustomCrypto, CustomEvmFactory},
     error::ClientError,
+    hashed_keys::MemoKeyHasher,
     into_primitives::FromInput,
     io::{ClientExecutorInput, TrieDB, WitnessInput},
     tracking::OpCodesTrackingBlockExecutor,
@@ -52,15 +52,17 @@ where
 {
     pub fn execute(
         &self,
-        mut input: ClientExecutorInput<C::Primitives>,
+        input: ClientExecutorInput<C::Primitives>,
     ) -> Result<(Header, B256), ClientError> {
         let sealed_headers = input.sealed_headers().collect::<Vec<_>>();
 
-        // Initialize the witnessed database with verified storage proofs.
-        let db = profile_report!(INIT_WITNESS_DB, {
-            let trie_db = input.witness_db(&sealed_headers).unwrap();
-            WrapDatabaseRef(trie_db)
-        });
+        // Materialise the witnessed state (every node hash-checked) and wrap it
+        // as the execution database.
+        let mut state = profile_report!(INIT_WITNESS_DB, {
+            mpt::ArenaState::from_witness(&input.parent_state)
+                .map_err(|e| ClientError::InvalidWitness(e.to_string()))
+        })?;
+        let db = WrapDatabaseRef(input.witness_db(&state, &sealed_headers)?);
 
         let chain_id: u64 = (&input.genesis).try_into().expect("convert chain id err");
 
@@ -77,7 +79,7 @@ where
             profile_report!(BLOCK_EXECUTION, { block_executor.execute(&block) })?;
 
         // Validate the block post execution.
-        profile_report!(VALIDATE_EXECUTION, {
+        let checked_bloom = profile_report!(VALIDATE_EXECUTION, {
             C::Primitives::validate_block_post_execution(
                 &block,
                 self.chain_spec.clone(),
@@ -85,13 +87,21 @@ where
             )
         })?;
 
-        // Accumulate the logs bloom.
-        let mut logs_bloom = Bloom::default();
-        profile_report!(ACCRUE_LOG_BLOOM, {
-            execution_output.result.receipts.iter().for_each(|r| {
-                logs_bloom.accrue_bloom(&r.bloom());
-            })
-        });
+        // The logs bloom: the one validation checked against the receipts,
+        // else accumulated here.  A receipt bloom hashes every log address and
+        // topic, so accumulating it again cost a keccak per log entry.
+        let logs_bloom = match checked_bloom {
+            Some(bloom) => bloom,
+            None => {
+                let mut logs_bloom = Bloom::default();
+                profile_report!(ACCRUE_LOG_BLOOM, {
+                    execution_output.result.receipts.iter().for_each(|r| {
+                        logs_bloom.accrue_bloom(&r.bloom());
+                    })
+                });
+                logs_bloom
+            }
+        };
 
         // Convert the output to an execution outcome.
         let executor_outcome = ExecutionOutcome::new(
@@ -101,12 +111,12 @@ where
             vec![execution_output.result.requests],
         );
 
-        let parent_state_root = input.parent_state.state_root();
+        let parent_state_root = input.parent_state.state_root;
 
         // Verify the state root.
         let state_root = profile_report!(COMPUTE_STATE_ROOT, {
-            input.parent_state.update(&executor_outcome.hash_state_slow::<KeccakKeyHasher>());
-            input.parent_state.state_root()
+            state.update(&executor_outcome.hash_state_slow::<MemoKeyHasher>());
+            state.state_root()
         });
 
         if state_root != input.current_block.header().state_root() {
