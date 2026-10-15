@@ -1,4 +1,5 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
+#![cfg_attr(target_os = "zkvm", feature(asm_experimental_arch))]
 
 /// Client program input data types.
 pub mod io;
