@@ -21,7 +21,7 @@ use crate::{
     custom::{CustomCrypto, CustomEvmFactory},
     error::ClientError,
     into_primitives::FromInput,
-    io::{ClientExecutorInput, TrieDB, WitnessInput},
+    io::{analyze_bytecodes, ClientExecutorInput, TrieDB, WitnessInput},
     tracking::OpCodesTrackingBlockExecutor,
     BlockValidator,
 };
@@ -169,10 +169,7 @@ where
                         }
                     }
 
-                    let bytecodes_by_hash = input
-                        .bytecodes()
-                        .map(|code| (code.hash_slow(), code))
-                        .collect::<HashMap<_, _>>();
+                    let bytecodes_by_hash = analyze_bytecodes(input.bytecodes());
 
                     // Verify and build block hashes
                     let mut block_hashes: HashMap<u64, B256> =
