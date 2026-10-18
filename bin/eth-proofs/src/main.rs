@@ -88,7 +88,7 @@ async fn main() -> eyre::Result<()> {
             root,
             Identity {
                 namespace: std::env::var("FLEET_APP_NAMESPACE")?,
-                tenant: std::env::var("FLEET_APP_TENANT")?,
+                app: std::env::var("FLEET_APP")?,
                 chain_id: 1,
                 cluster_id: args.eth_proofs_cluster_id,
                 elf_id: elf_id.clone(),

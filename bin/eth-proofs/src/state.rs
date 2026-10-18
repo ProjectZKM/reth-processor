@@ -14,13 +14,18 @@ use std::{
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Identity {
     pub namespace: String,
-    pub tenant: String,
+    /// The Fleet app the stream proves for.
+    pub app: String,
     pub chain_id: u64,
     pub cluster_id: u64,
     pub elf_id: String,
     pub interval: u64,
     pub residue: u64,
 }
+/// The checkpoint format. Version 1 named the stream's Fleet tenant where version 2 names its
+/// app; a version 1 checkpoint is upgraded when the rest of its identity matches.
+const VERSION: u32 = 2;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Checkpoint {
     version: u32,
@@ -62,13 +67,21 @@ impl State {
         }
         let path = root.join("checkpoint.json");
         let checkpoint = if path.exists() {
-            let checkpoint: Checkpoint = serde_json::from_slice(&fs::read(path)?)?;
-            if checkpoint.version != 1 || checkpoint.identity != identity {
-                bail!("worker state identity differs from configured chain, cluster, program or stream");
+            let mut saved: Value = serde_json::from_slice(&fs::read(path)?)?;
+            if saved["version"] == 1 {
+                if let Some(old) = saved["identity"].as_object_mut() {
+                    old.remove("tenant");
+                    old.insert("app".into(), identity.app.clone().into());
+                }
+                saved["version"] = VERSION.into();
+            }
+            let checkpoint: Checkpoint = serde_json::from_value(saved)?;
+            if checkpoint.version != VERSION || checkpoint.identity != identity {
+                bail!("worker state identity differs from configured app, chain, cluster, program or stream");
             }
             checkpoint
         } else {
-            Checkpoint { version: 1, identity, next_block: start, last_proved: None }
+            Checkpoint { version: VERSION, identity, next_block: start, last_proved: None }
         };
         let state = Self {
             root: fs::canonicalize(root)?,
@@ -302,7 +315,7 @@ mod tests {
     fn identity() -> Identity {
         Identity {
             namespace: "test".into(),
-            tenant: "ethproofs".into(),
+            app: "ethproofs".into(),
             chain_id: 1,
             cluster_id: 8,
             elf_id: "abc".into(),
@@ -360,6 +373,29 @@ mod tests {
         assert_eq!(state.next_block(), Some(11));
         assert!(state.pending().unwrap().is_empty());
         assert!(state.input(10).unwrap().is_none());
+    }
+    #[test]
+    fn a_tenant_checkpoint_is_upgraded_to_name_its_app() {
+        let root = tempfile::tempdir().unwrap();
+        let old = serde_json::json!({"version": 1, "identity": {"namespace": "test", "tenant": "ethproofs", "chain_id": 1,
+            "cluster_id": 8, "elf_id": "abc", "interval": 1, "residue": 0}, "next_block": 42, "last_proved": 41});
+        fs::write(root.path().join("checkpoint.json"), serde_json::to_vec(&old).unwrap()).unwrap();
+        let mut renamed = identity();
+        renamed.app = "ethproofs-z4".into();
+        let state = State::open(root.path(), renamed.clone(), None).unwrap();
+        assert_eq!(state.next_block(), Some(42), "the stream resumes where it was");
+        drop(state);
+        let saved: Value = serde_json::from_slice(&fs::read(root.path().join("checkpoint.json")).unwrap()).unwrap();
+        assert_eq!((saved["version"].clone(), saved["identity"]["app"].clone()), (serde_json::json!(2), serde_json::json!("ethproofs-z4")));
+        assert!(saved["identity"].get("tenant").is_none());
+        assert!(State::open(root.path(), renamed.clone(), None).is_ok());
+        let mut other = renamed;
+        other.app = "another".into();
+        assert!(State::open(root.path(), other, None).is_err(), "an upgraded checkpoint names its app");
+        let mut moved = identity();
+        moved.elf_id = "other".into();
+        fs::write(root.path().join("checkpoint.json"), serde_json::to_vec(&old).unwrap()).unwrap();
+        assert!(State::open(root.path(), moved, None).is_err(), "only the tenant may differ");
     }
     #[test]
     fn duplicate_owner_and_changed_program_are_rejected() {

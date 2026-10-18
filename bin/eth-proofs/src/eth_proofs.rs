@@ -355,7 +355,7 @@ mod tests {
                 root.path(),
                 Identity {
                     namespace: "test".into(),
-                    tenant: "ethproofs".into(),
+                    app: "ethproofs".into(),
                     chain_id: 1,
                     cluster_id: 8,
                     elf_id: "elf".into(),
@@ -428,7 +428,7 @@ mod tests {
             root.path(),
             Identity {
                 namespace: "test".into(),
-                tenant: "ethproofs".into(),
+                app: "ethproofs".into(),
                 chain_id: 1,
                 cluster_id: 8,
                 elf_id: "elf".into(),
