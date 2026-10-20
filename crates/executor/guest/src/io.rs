@@ -14,7 +14,7 @@ use revm::{
     state::{AccountInfo, Bytecode},
     DatabaseRef,
 };
-use revm_primitives::{keccak256, Address, B256, U256};
+use revm_primitives::{keccak256, Address, Bytes, B256, U256};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
@@ -42,8 +42,10 @@ pub struct ClientExecutorInput<P: NodePrimitives> {
     pub ancestor_headers: Vec<Header>,
     /// Network state as of the parent block.
     pub parent_state: EthereumState,
-    /// Account bytecodes.
-    pub bytecodes: Vec<Bytecode>,
+    /// Account bytecodes as deployed. The guest derives every jump table itself: a table
+    /// shipped by the host would decide which jumps are valid without being bound by the code
+    /// hash, which covers the code bytes only.
+    pub bytecodes: Vec<Bytes>,
     /// The genesis block, as a json string.
     pub genesis: Genesis,
     /// The genesis block, as a json string.
@@ -77,7 +79,7 @@ impl<P: NodePrimitives> WitnessInput for ClientExecutorInput<P> {
     }
 
     #[inline(always)]
-    fn bytecodes(&self) -> impl Iterator<Item = &Bytecode> {
+    fn bytecodes(&self) -> impl Iterator<Item = &Bytes> {
         self.bytecodes.iter()
     }
 
@@ -106,14 +108,14 @@ impl From<Header> for CommittedHeader {
 pub struct TrieDB<'a> {
     inner: &'a EthereumState,
     block_hashes: HashMap<u64, B256>,
-    bytecode_by_hash: HashMap<B256, &'a Bytecode>,
+    bytecode_by_hash: HashMap<B256, Bytecode>,
 }
 
 impl<'a> TrieDB<'a> {
     pub fn new(
         inner: &'a EthereumState,
         block_hashes: HashMap<u64, B256>,
-        bytecode_by_hash: HashMap<B256, &'a Bytecode>,
+        bytecode_by_hash: HashMap<B256, Bytecode>,
     ) -> Self {
         Self { inner, block_hashes, bytecode_by_hash }
     }
@@ -146,7 +148,7 @@ impl DatabaseRef for TrieDB<'_> {
 
     /// Get account code by its hash.
     fn code_by_hash_ref(&self, hash: B256) -> Result<Bytecode, Self::Error> {
-        Ok(self.bytecode_by_hash.get(&hash).map(|code| (*code).clone()).unwrap())
+        Ok(self.bytecode_by_hash.get(&hash).cloned().unwrap())
     }
 
     /// Get storage value of address at index.
@@ -175,6 +177,20 @@ impl DatabaseRef for TrieDB<'_> {
     }
 }
 
+/// The shipped bytecodes analyzed in the guest, keyed by their hash: legacy code gets
+/// the jump table revm derives from its bytes, EIP-7702 delegations their designator.
+pub(crate) fn analyze_bytecodes<'b>(
+    codes: impl Iterator<Item = &'b Bytes>,
+) -> HashMap<B256, Bytecode> {
+    codes
+        .map(|code| {
+            let code = Bytecode::new_raw_checked(code.clone())
+                .expect("shipped bytecode must be legacy code or an EIP-7702 delegation");
+            (code.hash_slow(), code)
+        })
+        .collect()
+}
+
 /// A trait for constructing [`WitnessDb`].
 pub trait WitnessInput {
     /// Gets a reference to the state from which account info and storage slots are loaded.
@@ -184,8 +200,8 @@ pub trait WitnessInput {
     /// [state()](trait.WitnessInput#tymethod.state) must conform to.
     fn state_anchor(&self) -> B256;
 
-    /// Gets an iterator over account bytecodes.
-    fn bytecodes(&self) -> impl Iterator<Item = &Bytecode>;
+    /// Gets an iterator over the account bytecodes, as deployed.
+    fn bytecodes(&self) -> impl Iterator<Item = &Bytes>;
 
     /// Gets an iterator over references to a consecutive, reverse-chronological block headers
     /// starting from the current block header.
@@ -215,8 +231,7 @@ pub trait WitnessInput {
             }
         }
 
-        let bytecodes_by_hash =
-            self.bytecodes().map(|code| (code.hash_slow(), code)).collect::<HashMap<_, _>>();
+        let bytecodes_by_hash = analyze_bytecodes(self.bytecodes());
 
         // Verify and build block hashes
         let mut block_hashes: HashMap<u64, B256> = HashMap::with_hasher(Default::default());

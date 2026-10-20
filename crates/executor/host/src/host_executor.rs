@@ -229,7 +229,7 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             current_block: C::Primitives::into_input_block(current_block),
             ancestor_headers,
             parent_state: state,
-            bytecodes: rpc_db.bytecodes(),
+            bytecodes: rpc_db.bytecodes().iter().map(|code| code.original_bytes()).collect(),
             genesis,
             custom_beneficiary,
             opcode_tracking,
