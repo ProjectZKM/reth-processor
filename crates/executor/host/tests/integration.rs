@@ -123,7 +123,7 @@ async fn run_e2e<C, CS, N>(
         .expect("failed to execute host");
 
     // Execute the client.
-    client_executor.execute(client_input.clone()).expect("failed to execute client");
+    client_executor.execute(client_input.clone(), vec![]).expect("failed to execute client");
 
     // Save the client input to a buffer.
     let buffer = bincode::serialize(&client_input).unwrap();
