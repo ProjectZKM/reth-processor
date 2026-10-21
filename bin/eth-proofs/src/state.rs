@@ -383,4 +383,28 @@ mod tests {
         assert!(state.is_committed(10).is_err());
         assert!(state.advance(11, true).is_err());
     }
+
+    #[test]
+    fn restart_preserves_prefetch_and_reorg_discards_all_future_inputs() {
+        let root = tempfile::tempdir().unwrap();
+        let state = State::open(root.path(), identity(), Some(10)).unwrap();
+        for block in 10..14 {
+            state.save_input(block, &[block as u8]).unwrap();
+        }
+        state.commit(10, b"proof", b"values", serde_json::json!({"block_number":10})).unwrap();
+        state.advance(10, true).unwrap();
+        drop(state);
+        let state = State::open(root.path(), identity(), None).unwrap();
+        assert_eq!(state.next_block(), Some(11));
+        for block in 11..14 {
+            assert_eq!(state.input(block).unwrap().unwrap(), [block as u8]);
+        }
+        state.discard_inputs_from(11).unwrap();
+        assert_eq!(state.next_block(), Some(11));
+        for block in 11..14 {
+            assert!(state.input(block).unwrap().is_none());
+        }
+        assert!(state.is_committed(10).unwrap());
+        assert_eq!(state.pending_count().unwrap(), 1);
+    }
 }

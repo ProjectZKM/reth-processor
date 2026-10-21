@@ -8,16 +8,19 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "execution-witness")]
 mod execution_witness;
 
+/// Arena-backed trie built from a preorder RLP witness stream (the guest's form).
+mod arena;
 /// Module containing MPT code adapted from `zeth`.
 mod mpt;
+pub use arena::{input_bytes, witness_stream, ArenaState, ArenaTrie, StorageWitness, WitnessState};
 pub use mpt::Error;
 use mpt::{
-    mpt_from_proof, parse_proof, proofs_to_tries, resolve_nodes, transition_proofs_to_tries,
-    MptNode,
+    extend_trie_from_proof, mpt_from_proof, node_from_digest, parse_proof, proofs_to_tries,
+    resolve_nodes, transition_proofs_to_tries, MptNode,
 };
 
 /// Ethereum state trie and account storage tries.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EthereumState {
     pub state_trie: MptNode,
     pub storage_tries: HashMap<B256, MptNode>,
@@ -70,6 +73,25 @@ impl EthereumState {
         };
 
         Ok(state)
+    }
+
+    /// Resolves missing account trie nodes from an EIP-1186 account proof.
+    pub fn extend_from_account_proof(
+        &mut self,
+        proof: &EIP1186AccountProofResponse,
+    ) -> Result<(), FromProofError> {
+        self.state_trie = extend_trie_from_proof(&self.state_trie, &proof.account_proof)?;
+        let hashed_address = keccak256(proof.address);
+        for storage_proof in &proof.storage_proof {
+            let storage_trie = self
+                .storage_tries
+                .entry(hashed_address)
+                .or_insert_with(|| node_from_digest(proof.storage_hash));
+            if !storage_proof.proof.is_empty() {
+                *storage_trie = extend_trie_from_proof(storage_trie, &storage_proof.proof)?;
+            }
+        }
+        Ok(())
     }
 
     #[cfg(feature = "execution-witness")]
@@ -158,6 +180,27 @@ impl EthereumState {
     pub fn state_root(&self) -> B256 {
         self.state_trie.hash()
     }
+
+    /// The witness form the guest consumes: root hashes plus preorder streams
+    /// of raw RLP nodes for the state trie and every storage trie (sorted by
+    /// hashed address so the bytes are reproducible).
+    pub fn to_witness_state(&self) -> WitnessState {
+        let mut storage: Vec<StorageWitness> = self
+            .storage_tries
+            .iter()
+            .map(|(addr, trie)| StorageWitness {
+                hashed_address: *addr,
+                root: trie.hash(),
+                nodes: witness_stream(trie),
+            })
+            .collect();
+        storage.sort_by(|a, b| a.hashed_address.cmp(&b.hashed_address));
+        WitnessState {
+            state_root: self.state_trie.hash(),
+            state_nodes: witness_stream(&self.state_trie),
+            storage,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -180,6 +223,7 @@ pub enum FromProofError {
 #[cfg(test)]
 mod tests {
     use alloy_primitives::{b256, U256};
+    use reth_primitives_traits::Account;
 
     use super::*;
 
@@ -217,10 +261,10 @@ mod tests {
                 },
             )
             .unwrap();
-        let mut post_state = HashedPostState::default()
-            .with_accounts([(hashed_address, Some(Default::default()))]);
-        post_state.accounts.get_mut(&hashed_address).unwrap().as_mut().unwrap().balance =
-            U256::from(2);
+        let post_state = HashedPostState::default().with_accounts([(
+            hashed_address,
+            Some(Account { nonce: 0, balance: U256::from(2), bytecode_hash: None }),
+        )]);
 
         state.update(&post_state);
 

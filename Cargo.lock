@@ -340,7 +340,7 @@ dependencies = [
  "serde",
  "sha3",
  "tiny-keccak",
- "zkm-zkvm",
+ "zkm-zkvm 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
 ]
 
 [[package]]
@@ -518,7 +518,7 @@ dependencies = [
  "alloy-rlp",
  "alloy-serde",
  "alloy-sol-types",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "serde",
  "serde_json",
  "serde_with",
@@ -1461,12 +1461,14 @@ version = "0.8.0"
 source = "git+https://github.com/ziren-patches/bls12_381?branch=patch-0.8.0#bcf9397426410acc171ad625416b508dc913be8e"
 dependencies = [
  "cfg-if",
+ "digest 0.10.7",
  "ff 0.13.1",
  "group 0.13.0",
+ "hex",
  "pairing 0.23.0",
  "rand_core 0.6.4",
  "subtle",
- "zkm-lib",
+ "zkm-lib 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
 ]
 
 [[package]]
@@ -2932,7 +2934,9 @@ dependencies = [
  "alloy-network",
  "alloy-primitives",
  "alloy-rpc-types",
+ "aurora-engine-modexp",
  "bincode",
+ "bls12_381 0.8.0",
  "itertools 0.13.0",
  "kzg-rs",
  "mpt",
@@ -2959,7 +2963,9 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "substrate-bn",
  "thiserror 1.0.69",
+ "zkm-lib 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
@@ -3797,7 +3803,7 @@ dependencies = [
  "serdect",
  "sha2",
  "signature",
- "zkm-lib",
+ "zkm-lib 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
 ]
 
 [[package]]
@@ -4112,6 +4118,7 @@ dependencies = [
  "alloy-rpc-types",
  "alloy-rpc-types-debug",
  "hex-literal",
+ "reth-primitives-traits",
  "reth-trie",
  "rlp",
  "serde",
@@ -4534,7 +4541,7 @@ dependencies = [
  "hex",
  "primeorder",
  "sha2",
- "zkm-lib",
+ "zkm-lib 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
 ]
 
 [[package]]
@@ -5373,7 +5380,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
@@ -5406,7 +5413,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -7396,7 +7403,7 @@ dependencies = [
  "num-bigint 0.4.6",
  "rand 0.8.5",
  "rustc-hex",
- "zkm-lib",
+ "zkm-lib 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
 ]
 
 [[package]]
@@ -8985,7 +8992,7 @@ dependencies = [
 [[package]]
 name = "zkm-build"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -8996,7 +9003,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-executor"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -9034,13 +9041,13 @@ dependencies = [
  "zkm-core-jit",
  "zkm-curves",
  "zkm-pcs",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
 name = "zkm-core-jit"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "dynasmrt",
  "hashbrown 0.14.5",
@@ -9057,7 +9064,7 @@ dependencies = [
 [[package]]
 name = "zkm-core-machine"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "bincode",
  "cfg-if",
@@ -9103,13 +9110,13 @@ dependencies = [
  "zkm-curves",
  "zkm-derive",
  "zkm-pcs",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
 name = "zkm-cuda"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "bincode",
  "ctrlc",
@@ -9127,7 +9134,7 @@ dependencies = [
 [[package]]
 name = "zkm-curves"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "cfg-if",
  "curve25519-dalek",
@@ -9145,17 +9152,30 @@ dependencies = [
  "tracing",
  "typenum",
  "zkm-poly",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
 name = "zkm-derive"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "zkm-lib"
+version = "2.0.0"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
+dependencies = [
+ "bincode",
+ "cfg-if",
+ "elliptic-curve",
+ "serde",
+ "sha2",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
@@ -9168,13 +9188,13 @@ dependencies = [
  "elliptic-curve",
  "serde",
  "sha2",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
 ]
 
 [[package]]
 name = "zkm-pcs"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "arrayref",
  "bincode",
@@ -9212,17 +9232,37 @@ dependencies = [
  "tracing-subscriber",
  "zkm-derive",
  "zkm-poly",
- "zkm-primitives",
- "zkm-zkvm",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
+ "zkm-zkvm 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
 name = "zkm-poly"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "itertools 0.13.0",
  "p3-field",
+]
+
+[[package]]
+name = "zkm-primitives"
+version = "2.0.0"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
+dependencies = [
+ "bincode",
+ "blake3",
+ "hex",
+ "lazy_static",
+ "num-bigint 0.4.6",
+ "p3-field",
+ "p3-koala-bear",
+ "p3-monty-31",
+ "p3-poseidon2",
+ "p3-symmetric",
+ "serde",
+ "sha2",
+ "tracing",
 ]
 
 [[package]]
@@ -9248,7 +9288,7 @@ dependencies = [
 [[package]]
 name = "zkm-prover"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -9278,7 +9318,7 @@ dependencies = [
  "zkm-core-executor",
  "zkm-core-machine",
  "zkm-pcs",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
  "zkm-recursion-circuit",
  "zkm-recursion-compiler",
  "zkm-recursion-core",
@@ -9288,7 +9328,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-circuit"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -9312,7 +9352,7 @@ dependencies = [
  "zkm-core-machine",
  "zkm-derive",
  "zkm-pcs",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
  "zkm-recursion-compiler",
  "zkm-recursion-core",
  "zkm-recursion-gnark-ffi",
@@ -9321,7 +9361,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-compiler"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -9334,7 +9374,7 @@ dependencies = [
  "vec_map",
  "zkm-core-machine",
  "zkm-pcs",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
  "zkm-recursion-core",
  "zkm-recursion-derive",
 ]
@@ -9342,7 +9382,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-core"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "backtrace",
  "bincode",
@@ -9375,13 +9415,13 @@ dependencies = [
  "zkm-core-machine",
  "zkm-derive",
  "zkm-pcs",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
 name = "zkm-recursion-derive"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -9390,7 +9430,7 @@ dependencies = [
 [[package]]
 name = "zkm-recursion-gnark-ffi"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -9414,7 +9454,7 @@ dependencies = [
 [[package]]
 name = "zkm-sdk"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#0dd65a15db3d7bad5cf582c5dbc7492440ea2830"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
 dependencies = [
  "alloy-primitives",
  "anyhow",
@@ -9454,8 +9494,24 @@ dependencies = [
  "zkm-core-machine",
  "zkm-cuda",
  "zkm-pcs",
- "zkm-primitives",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
  "zkm-prover",
+]
+
+[[package]]
+name = "zkm-zkvm"
+version = "2.0.0"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm#8a9ab4fed7d83e1acfd08d40ceacd12ddf8a00c0"
+dependencies = [
+ "bincode",
+ "cfg-if",
+ "getrandom 0.2.16",
+ "lazy_static",
+ "rand 0.8.5",
+ "serde",
+ "sha2",
+ "zkm-lib 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren?branch=perf%2Fshamir-msm)",
 ]
 
 [[package]]
@@ -9471,8 +9527,8 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "sha2",
- "zkm-lib",
- "zkm-primitives",
+ "zkm-lib 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
+ "zkm-primitives 2.0.0 (git+https://github.com/ProjectZKM/Ziren)",
 ]
 
 [[package]]
