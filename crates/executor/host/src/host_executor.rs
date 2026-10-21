@@ -76,22 +76,41 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
         let chain_id: u64 = (&genesis).try_into().unwrap();
         tracing::debug!("chain id: {}", chain_id);
 
-        // Fetch the current block and the previous block from the provider.
+        // Fetch the current block, the previous block and (with the
+        // execution-witness feature) the witness concurrently.  Only the
+        // witness DB construction needs the parent's state root; the three RPC
+        // round trips themselves are independent, and run serially they were
+        // ~4 s of the ~4.2 s an uncached block spends before proving starts.
         tracing::info!("[{}] fetching the current block and the previous block", block_number);
-        let rpc_block = provider
-            .get_block_by_number(block_number.into())
-            .full()
-            .await?
-            .ok_or(HostError::ExpectedBlock(block_number))?;
+        let fetch_current = async {
+            provider
+                .get_block_by_number(block_number.into())
+                .full()
+                .await?
+                .ok_or(HostError::ExpectedBlock(block_number))
+        };
+        let fetch_previous = async {
+            provider
+                .get_block_by_number((block_number - 1).into())
+                .full()
+                .await?
+                .ok_or(HostError::ExpectedBlock(block_number))
+                .map(C::Primitives::into_primitive_block)
+        };
+
+        #[cfg(not(feature = "execution-witness"))]
+        let (rpc_block, previous_block) = futures::try_join!(fetch_current, fetch_previous)?;
+        #[cfg(feature = "execution-witness")]
+        let (rpc_block, previous_block, execution_witness) = {
+            let fetch_witness = async {
+                rpc_db::ExecutionWitnessRpcDb::<_, N>::fetch_witness(debug_provider, block_number)
+                    .await
+                    .map_err(HostError::from)
+            };
+            futures::try_join!(fetch_current, fetch_previous, fetch_witness)?
+        };
 
         let current_block = C::Primitives::into_primitive_block(rpc_block.clone());
-
-        let previous_block = provider
-            .get_block_by_number((block_number - 1).into())
-            .full()
-            .await?
-            .ok_or(HostError::ExpectedBlock(block_number))
-            .map(C::Primitives::into_primitive_block)?;
 
         tracing::info!("[{}] create rpc db", block_number);
         #[cfg(not(feature = "execution-witness"))]
@@ -101,12 +120,12 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
             previous_block.header().state_root(),
         );
         #[cfg(feature = "execution-witness")]
-        let rpc_db = rpc_db::ExecutionWitnessRpcDb::new(
+        let rpc_db = rpc_db::ExecutionWitnessRpcDb::from_witness(
             debug_provider,
             block_number,
             previous_block.header().state_root(),
-        )
-        .await?;
+            execution_witness,
+        );
         tracing::info!("[{}] create rpc db done", block_number);
 
         let cache_db = CacheDB::new(&rpc_db);
@@ -216,8 +235,15 @@ impl<C: ConfigureEvm, CS> HostExecutor<C, CS> {
         let client_input = ClientExecutorInput {
             current_block: C::Primitives::into_input_block(current_block),
             ancestor_headers,
-            parent_state: state,
-            bytecodes: rpc_db.bytecodes(),
+            // Witness form: root hashes + preorder streams of raw RLP nodes; the
+            // guest builds its arena tries from it, hash-checking every node.
+            parent_state: state.to_witness_state(),
+            code_hashes: rpc_db.bytecodes().iter().map(|b| b.hash_slow()).collect(),
+            bytecodes: rpc_db
+                .bytecodes()
+                .iter()
+                .map(|b| guest_executor::io::RawCode::new(b.original_byte_slice()))
+                .collect(),
             genesis,
             custom_beneficiary,
             opcode_tracking,

@@ -1,29 +1,154 @@
-use std::time::Duration;
+use crate::state::State;
+use std::{sync::Arc, time::Duration};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use eyre::eyre;
 use host_executor::ExecutionHooks;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
-use tracing::error;
+use tracing::{error, info};
 use zkm_sdk::{HashableKey, ZKMVerifyingKey};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct EthProofsClient {
     cluster_id: u64,
     endpoint: String,
     api_token: String,
     client: ClientWithMiddleware,
+    state: Option<Arc<State>>,
 }
 
 impl EthProofsClient {
     pub fn new(cluster_id: u64, endpoint: String, api_token: String) -> Self {
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
-        let client = ClientBuilder::new(reqwest::Client::new())
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-            .build();
+        let client = ClientBuilder::new(
+            reqwest::Client::builder().timeout(Duration::from_secs(60)).build().unwrap(),
+        )
+        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+        .build();
 
-        Self { cluster_id, endpoint, api_token, client }
+        Self { cluster_id, endpoint, api_token, client, state: None }
+    }
+
+    pub fn with_state(mut self, state: Arc<State>) -> Self {
+        self.state = Some(state);
+        self
+    }
+
+    pub fn start_reporter(&self) -> tokio::task::JoinHandle<()> {
+        let this = self.clone();
+        tokio::spawn(async move {
+            let Some(state) = &this.state else {
+                return;
+            };
+            loop {
+                match state.pending() {
+                    Ok(pending) => {
+                        for (block, payload) in pending {
+                            let result = this
+                                .client
+                                .post(format!("{}/proofs/proved", this.endpoint))
+                                .header("Authorization", format!("Bearer {}", this.api_token))
+                                .json(&payload)
+                                .send()
+                                .await;
+                            match result {
+                                Ok(response) if response.status().is_success() => {
+                                    if let Err(err) = state.acknowledge(block) {
+                                        error!(block, %err, "report accepted but acknowledgment persistence failed");
+                                    } else {
+                                        info!(block, "durable EthProofs report acknowledged");
+                                    }
+                                }
+                                Ok(response)
+                                    if response.status() == reqwest::StatusCode::CONFLICT =>
+                                {
+                                    match this.already_published(block, &payload).await {
+                                        Ok(true) => {
+                                            if let Err(err) = state.acknowledge(block) {
+                                                error!(block, %err, "duplicate acknowledgment persistence failed");
+                                            } else {
+                                                info!(
+                                                    block,
+                                                    duplicate = true,
+                                                    "durable EthProofs report acknowledged"
+                                                );
+                                            }
+                                        }
+                                        Ok(false) => error!(
+                                            block,
+                                            "conflicting API proof differs; report remains pending"
+                                        ),
+                                        Err(err) => {
+                                            error!(block, %err, "duplicate proof lookup failed; report remains pending")
+                                        }
+                                    }
+                                }
+                                Ok(response) => {
+                                    error!(block, status = %response.status(), "EthProofs report remains pending")
+                                }
+                                Err(err) => error!(block, %err, "EthProofs report remains pending"),
+                            }
+                        }
+                    }
+                    Err(err) => error!(%err, "reading persistent reporting outbox failed"),
+                }
+                tokio::select! {
+                    _ = state.report_ready() => {},
+                    _ = tokio::time::sleep(Duration::from_secs(3)) => {},
+                }
+            }
+        })
+    }
+
+    /// A lost local acknowledgment can turn a successful retry into HTTP 409.
+    /// Only accept it after checking the cluster, block, and exact published bytes.
+    async fn already_published(
+        &self,
+        block: u64,
+        payload: &serde_json::Value,
+    ) -> eyre::Result<bool> {
+        let rows: serde_json::Value = self
+            .client
+            .get(format!("{}/proofs?block={block}&limit=100", self.endpoint))
+            .header("Authorization", format!("Bearer {}", self.api_token))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let expected = STANDARD
+            .decode(payload["proof"].as_str().ok_or_else(|| eyre!("missing proof bytes"))?)?;
+        let proofs = rows["proofs"].as_array().ok_or_else(|| eyre!("invalid proof listing"))?;
+        for proof in proofs {
+            if proof["block_number"].as_u64() != Some(block) ||
+                proof["proof_status"].as_str() != Some("proved") ||
+                proof["cluster_version"]["cluster"]["index"].as_u64() != Some(self.cluster_id)
+            {
+                continue;
+            }
+            let id = match &proof["proof_id"] {
+                serde_json::Value::Number(id) => id.to_string(),
+                serde_json::Value::String(id) => id.clone(),
+                _ => continue,
+            };
+            if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+                continue;
+            }
+            let published = self
+                .client
+                .get(format!("{}/proofs/download/{id}", self.endpoint))
+                .header("Authorization", format!("Bearer {}", self.api_token))
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await?;
+            if published.as_ref() == expected.as_slice() {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     pub async fn queued(&self, block_number: u64) {
@@ -113,8 +238,12 @@ impl EthProofsClient {
                 .map_err(|e| eyre!(e))
                 .and_then(|r| r.error_for_status().map_err(|e| eyre!(e)));
 
-            if let Err(err) = response {
-                error!("Failed to report proof proving: {}", err)
+            match response {
+                Ok(_) => info!(
+                    "Reported proved block {} to eth-proofs: {} cycles, {:.1} s",
+                    block_number, cycles, elapsed
+                ),
+                Err(err) => error!("Failed to report proof proved: {}", err),
             }
         });
     }
@@ -145,9 +274,170 @@ impl ExecutionHooks for EthProofsClient {
         cycles: u64,
         proving_duration: Duration,
     ) -> eyre::Result<()> {
-        #[cfg(not(feature = "test"))]
-        self.proved(proof_bytes, block_number, cycles, proving_duration.as_secs_f32(), vk).await;
+        if let Some(state) = &self.state {
+            let payload = serde_json::json!({
+                "proof": STANDARD.encode(proof_bytes), "block_number": block_number,
+                "proving_cycles": cycles, "proving_time": proving_duration.as_millis() as u64,
+                "verifier_id": vk.bytes32(), "cluster_id": self.cluster_id,
+            });
+            // Commit the output and its retryable report before the cursor advances.
+            state.commit(block_number, proof_bytes, _public_values_bytes, payload)?;
+        } else {
+            #[cfg(not(feature = "test"))]
+            self.proved(proof_bytes, block_number, cycles, proving_duration.as_secs_f32(), vk)
+                .await;
+        }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::Identity;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn duplicate_lookup_requires_the_same_cluster_block_and_bytes() {
+        for (cluster, block, bytes, expected) in [
+            (8, 10, b"proof".as_slice(), true),
+            (9, 10, b"proof".as_slice(), false),
+            (8, 11, b"proof".as_slice(), false),
+            (8, 10, b"different".as_slice(), false),
+        ] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let client = EthProofsClient::new(
+                8,
+                format!("http://{}", listener.local_addr().unwrap()),
+                "test".into(),
+            );
+            let server = tokio::spawn(async move {
+                let listing = serde_json::json!({"proofs":[{
+                    "block_number":block,"proof_status":"proved","proof_id":123,
+                    "cluster_version":{"cluster":{"index":cluster}}
+                }]})
+                .to_string();
+                let count = if cluster == 8 && block == 10 { 2 } else { 1 };
+                for i in 0..count {
+                    let (mut socket, _) = listener.accept().await.unwrap();
+                    let mut request = vec![0; 4096];
+                    let n = socket.read(&mut request).await.unwrap();
+                    let request = String::from_utf8_lossy(&request[..n]);
+                    assert!(request.starts_with(if i == 0 {
+                        "GET /proofs?block=10&limit=100 "
+                    } else {
+                        "GET /proofs/download/123 "
+                    }));
+                    let body = if i == 0 { listing.as_bytes() } else { bytes };
+                    socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",body.len()).as_bytes()).await.unwrap();
+                    socket.write_all(body).await.unwrap();
+                }
+            });
+            let actual = tokio::time::timeout(
+                Duration::from_secs(5),
+                client
+                    .already_published(10, &serde_json::json!({"proof":STANDARD.encode(b"proof")})),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+            assert_eq!(actual, expected);
+            server.await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn report_is_retained_until_http_success() {
+        let root = tempfile::tempdir().unwrap();
+        let state = Arc::new(
+            State::open(
+                root.path(),
+                Identity {
+                    namespace: "test".into(),
+                    tenant: "ethproofs".into(),
+                    chain_id: 1,
+                    cluster_id: 8,
+                    elf_id: "elf".into(),
+                    interval: 1,
+                    residue: 0,
+                },
+                Some(10),
+            )
+            .unwrap(),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let client = EthProofsClient::new(
+            8,
+            format!("http://{}", listener.local_addr().unwrap()),
+            "test".into(),
+        )
+        .with_state(state.clone());
+        let reporter = client.start_reporter();
+        // Let the reporter enter its idle wait, then commit a new output.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        state.commit(10, b"proof", b"values", serde_json::json!({"block_number":10})).unwrap();
+        for status in ["401 Unauthorized", "200 OK"] {
+            let timeout = if status.starts_with("401") { 1 } else { 10 };
+            let (mut socket, _) =
+                tokio::time::timeout(Duration::from_secs(timeout), listener.accept())
+                    .await
+                    .unwrap()
+                    .unwrap();
+            let mut request = Vec::new();
+            loop {
+                let mut bytes = [0; 2048];
+                let n = socket.read(&mut bytes).await.unwrap();
+                request.extend_from_slice(&bytes[..n]);
+                if let Some(end) = request.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let headers = String::from_utf8_lossy(&request[..end]).to_ascii_lowercase();
+                    let length = headers
+                        .lines()
+                        .find_map(|line| line.strip_prefix("content-length: "))
+                        .unwrap()
+                        .parse::<usize>()
+                        .unwrap();
+                    if request.len() >= end + 4 + length {
+                        break;
+                    }
+                }
+                assert!(n > 0);
+            }
+            assert!(String::from_utf8_lossy(&request).starts_with("POST /proofs/proved"));
+            assert_eq!(state.pending_count().unwrap(), 1);
+            socket
+                .write_all(
+                    format!("HTTP/1.1 {status}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                        .as_bytes(),
+                )
+                .await
+                .unwrap();
+        }
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while state.pending_count().unwrap() != 0 {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        reporter.abort();
+        let _ = reporter.await;
+        drop(client);
+        drop(state);
+        let restored = State::open(
+            root.path(),
+            Identity {
+                namespace: "test".into(),
+                tenant: "ethproofs".into(),
+                chain_id: 1,
+                cluster_id: 8,
+                elf_id: "elf".into(),
+                interval: 1,
+                residue: 0,
+            },
+            None,
+        )
+        .unwrap();
+        assert_eq!(restored.pending_count().unwrap(), 0);
     }
 }

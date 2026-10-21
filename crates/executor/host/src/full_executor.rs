@@ -113,10 +113,25 @@ pub trait BlockExecutor<C: ExecutorComponents> {
 
             info!("cycles: {:?}", proof_with_cycles.1);
 
-            let proving_duration = proving_start.elapsed();
+            // Prefer the prover's own measure when it has one.  This process
+            // times the whole call, which with a pipelined caller includes the
+            // request waiting in the prover's queue; the prover times only the
+            // proving.  Everything downstream — the eth-proofs submission
+            // among it — should report proving, not queueing.
+            let proving_duration = self
+                .client()
+                .take_prove_ms()
+                .map(Duration::from_millis)
+                .unwrap_or_else(|| proving_start.elapsed());
             let proof_bytes = bincode::serialize(&proof_with_cycles.0.proof).unwrap();
             let public_values_bytes =
                 bincode::serialize(&proof_with_cycles.0.public_values).unwrap();
+            // Size census: dump the exact bytes that get submitted so the
+            // proof's composition can be measured offline.
+            if let Ok(path) = std::env::var("ZIREN_COMPRESS_PROOF_OUT") {
+                std::fs::write(&path, &proof_bytes)?;
+                info!("wrote {} proof bytes to {path}", proof_bytes.len());
+            }
 
             hooks
                 .on_proving_end(
@@ -271,14 +286,12 @@ where
         }
         Ok(())
     }
-}
 
-impl<C, P> BlockExecutor<C> for FullExecutor<C, P>
-where
-    C: ExecutorComponents,
-    P: Provider<C::Network> + Clone + std::fmt::Debug,
-{
-    async fn execute(&self, block_number: u64) -> eyre::Result<()> {
+    /// Fetch the block and witness and execute natively, without starting GPU proving.
+    pub async fn prepare(
+        &self,
+        block_number: u64,
+    ) -> eyre::Result<ClientExecutorInput<C::Primitives>> {
         self.hooks.on_execution_start(block_number).await?;
 
         let client_input_from_cache = self.config.cache_dir.as_ref().and_then(|cache_dir| {
@@ -333,9 +346,25 @@ where
         };
         info!("Block {} executed in {:?}", block_number, now.elapsed());
 
-        self.process_client(client_input, &self.hooks, self.config.prove_mode).await?;
+        Ok(client_input)
+    }
 
-        Ok(())
+    /// Prove a prepared input; callers serialize core and compression together.
+    pub async fn prove_prepared(
+        &self,
+        client_input: ClientExecutorInput<C::Primitives>,
+    ) -> eyre::Result<()> {
+        self.process_client(client_input, &self.hooks, self.config.prove_mode).await
+    }
+}
+
+impl<C, P> BlockExecutor<C> for FullExecutor<C, P>
+where
+    C: ExecutorComponents,
+    P: Provider<C::Network> + Clone + std::fmt::Debug,
+{
+    async fn execute(&self, block_number: u64) -> eyre::Result<()> {
+        self.prove_prepared(self.prepare(block_number).await?).await
     }
 
     fn client(&self) -> Arc<C::Prover> {
@@ -471,7 +500,15 @@ fn try_load_input_from_cache<P: NodePrimitives + DeserializeOwned>(
     if cache_path.exists() {
         // TODO: prune the cache if invalid instead
         let mut cache_file = std::fs::File::open(cache_path)?;
-        let client_input = bincode::deserialize_from(&mut cache_file)?;
+        let client_input = match bincode::deserialize_from(&mut cache_file) {
+            Ok(input) => input,
+            Err(err) => {
+                tracing::warn!(
+                    "cached input for block {block_number} is unreadable ({err}); refetching"
+                );
+                return Ok(None);
+            }
+        };
 
         Ok(Some(client_input))
     } else {
